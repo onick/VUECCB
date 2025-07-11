@@ -1,320 +1,320 @@
-# 🎭 Sistema de Gestión de Visitantes - Centro Cultural Banreservas
+# 🎭 Centro Cultural Banreservas - Plataforma de Gestión
 
 <div align="center">
-  <img src="logo.png" alt="Centro Cultural Logo" width="200"/>
+  <img src="logo.png" alt="Centro Cultural Banreservas" width="200"/>
   
-  [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-009688.svg)](https://fastapi.tiangolo.com)
-  [![React](https://img.shields.io/badge/React-19.0.0-61dafb.svg)](https://reactjs.org/)
-  [![MongoDB](https://img.shields.io/badge/MongoDB-4.4+-00684A.svg)](https://www.mongodb.com/)
-  [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  [![Next.js](https://img.shields.io/badge/Next.js-14+-black?logo=next.js)](https://nextjs.org/)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688?logo=fastapi)](https://fastapi.tiangolo.com)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue?logo=typescript)](https://www.typescriptlang.org/)
+  [![MongoDB](https://img.shields.io/badge/MongoDB-4.4+-green?logo=mongodb)](https://www.mongodb.com/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4+-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
 </div>
 
 ## 📋 Descripción
 
-Sistema integral de gestión de visitantes y eventos para el Centro Cultural Banreservas. Permite a los usuarios explorar eventos culturales, realizar reservas, y hacer check-in mediante códigos QR. Los administradores pueden gestionar eventos, usuarios y generar reportes detallados.
+Sistema integral de gestión de visitantes y eventos culturales para el Centro Cultural Banreservas. Una plataforma moderna y escalable construida con tecnologías de vanguardia para transformar la experiencia cultural digital.
 
 ## ✨ Características Principales
 
-- 🎫 **Gestión de Eventos**: Creación y administración de eventos culturales en 8 categorías
-- 👥 **Gestión de Usuarios**: Registro, autenticación y perfiles de usuarios
-- 📱 **Sistema de Reservas**: Reservas con códigos QR y check-in múltiple
-- 📧 **Notificaciones Automáticas**: Emails de confirmación y recordatorios
-- 📊 **Analytics Avanzado**: Dashboard en tiempo real y segmentación de usuarios con ML
-- 📄 **Reportes Profesionales**: Generación de reportes en PDF y exportación de datos
-- 🔐 **Panel de Administración**: Control total del sistema para administradores
+### 🎫 **Gestión de Eventos**
+- **8 Categorías Culturales**: Cinema Dominicano, Cine Clásico, Cine General, Talleres, Conciertos, Charlas/Conferencias, Exposiciones de Arte, Experiencias 3D Inmersivas
+- **CRUD Completo**: Creación, edición, eliminación y gestión de eventos
+- **Upload de Imágenes**: Sistema de subida para material promocional
+- **Control de Capacidad**: Gestión automática de cupos y disponibilidad
 
-## 🏗️ Arquitectura
+### 👥 **Sistema de Usuarios**
+- **Autenticación Segura**: JWT con roles diferenciados
+- **Perfiles Completos**: Información personal y profesional
+- **Roles y Permisos**: Usuario estándar y Administrador
+- **Registro Simplificado**: Onboarding fluido
 
+### 📱 **Reservas Inteligentes**
+- **Códigos QR**: Generación automática para check-in
+- **Códigos Alfanuméricos**: Sistema único de 8 caracteres
+- **Check-in Flexible**: Por QR, código, email o teléfono
+- **Notificaciones**: Confirmaciones y recordatorios automáticos
+
+### 📊 **Panel Administrativo**
+- **Dashboard en Tiempo Real**: Métricas y estadísticas actualizadas
+- **Gestión Completa**: Control total del sistema
+- **Reportes Avanzados**: Analytics y tendencias
+- **Segmentación ML**: Análisis inteligente de usuarios
+
+## 🚀 Demo en Vivo
+
+### 🌐 URLs del Sistema
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8002
+- **Documentación API**: http://localhost:8002/docs
+- **Panel Admin**: http://localhost:3000/admin
+
+### 👤 Credenciales de Prueba
+
+#### Administrador Principal
+- **Email**: `admin@banreservas.com.do`
+- **Contraseña**: `Admin2024CCB!`
+
+#### Admin de Prueba
+- **Email**: `admin@culturalcenter.com`
+- **Contraseña**: `admin123`
+
+## 🏗️ Arquitectura Técnica
+
+### 🎨 **Frontend (Next.js 14)**
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│                 │     │                 │     │                 │
-│  Frontend       │────▶│  Backend API    │────▶│  MongoDB        │
-│  (React)        │     │  (FastAPI)      │     │                 │
-│                 │     │                 │     │                 │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        │                        │
-        │                        │
-        ▼                        ▼
-┌─────────────────┐     ┌─────────────────┐
-│  Tailwind CSS   │     │  SendGrid       │
-│  Socket.io      │     │  Analytics      │
-└─────────────────┘     └─────────────────┘
+frontend/
+├── app/                    # App Router (Next.js 14)
+│   ├── auth/              # Sistema de autenticación
+│   ├── events/            # Gestión de eventos
+│   ├── admin/             # Panel administrativo
+│   └── globals.css        # Estilos globales con variables CSS
+├── components/
+│   ├── ui/                # shadcn/ui components
+│   ├── features/          # Componentes de funcionalidades
+│   ├── layout/            # Layouts y navegación
+│   └── providers/         # Context providers
+├── lib/                   # Utilidades y configuraciones
+├── hooks/                 # Custom React hooks
+├── stores/                # Zustand state management
+└── types/                 # Definiciones TypeScript
 ```
 
-## 🚀 Inicio Rápido
+### ⚡ **Backend (FastAPI)**
+```
+backend/
+├── server.py             # Servidor principal FastAPI
+├── analytics/            # Sistema de analytics con ML
+├── core/                 # Configuraciones y seguridad
+├── models/               # Modelos de datos
+├── reports/              # Generación de reportes
+├── services/             # Servicios de negocio
+└── admin_manager.py      # Gestión de administradores
+```
 
-### Requisitos Previos
+## 🛠️ Stack Tecnológico
 
-- Node.js 18+ y npm/yarn
+<div align="center">
+
+| **Frontend** | **Backend** | **Database** | **Styling** |
+|:---:|:---:|:---:|:---:|
+| Next.js 14 | FastAPI | MongoDB | Tailwind CSS |
+| TypeScript | Python 3.8+ | Redis | shadcn/ui |
+| Zustand | JWT Auth | - | Framer Motion |
+
+</div>
+
+### 📦 **Dependencias Principales**
+
+#### Frontend
+- **Framework**: Next.js 14 con App Router
+- **UI Components**: shadcn/ui (Radix UI + Tailwind)
+- **Estado**: Zustand para gestión de estado
+- **Formularios**: React Hook Form + Zod
+- **Autenticación**: NextAuth.js
+- **Animaciones**: Framer Motion
+- **TypeScript**: Configuración estricta
+
+#### Backend
+- **Framework**: FastAPI con Pydantic
+- **Base de Datos**: MongoDB + PyMongo
+- **Cache**: Redis para analytics
+- **Auth**: JWT con python-jose
+- **Emails**: SendGrid integration
+- **ML**: Scikit-learn para segmentación
+- **Reportes**: ReportLab + Matplotlib
+
+## 🚀 Instalación y Configuración
+
+### 📋 **Requisitos Previos**
+- Node.js 18+
 - Python 3.8+
 - MongoDB 4.4+
-- SendGrid API Key (para emails)
+- Redis (opcional, para analytics)
 
-### Instalación
+### 🔧 **Configuración Rápida**
 
-1. **Clonar el repositorio**
+#### 1. **Clonar el Repositorio**
 ```bash
-git clone https://github.com/tu-usuario/cultural-center.git
-cd cultural-center
+git clone https://github.com/onick/VUECCB.git
+cd VUECCB
 ```
 
-2. **Configurar variables de entorno**
-
-Backend (.env):
+#### 2. **Backend Setup**
 ```bash
 cd backend
+
+# Instalar dependencias
+pip3 install -r requirements.txt
+pip3 install redis
+
+# Configurar variables de entorno
 cp .env.example .env
 # Editar .env con tus credenciales
+
+# Iniciar servidor
+python3 -m uvicorn server:app --reload --port 8002
 ```
 
-Frontend (.env):
+#### 3. **Frontend Setup**
 ```bash
-cd ../frontend
-cp .env.example .env
-# Editar .env con la URL del backend
-```
+cd frontend
 
-3. **Instalar dependencias del Backend**
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-4. **Instalar dependencias del Frontend**
-```bash
-cd ../frontend
+# Instalar dependencias
 npm install
-# o
-yarn install
+
+# Variables de entorno (ya configuradas)
+# NEXT_PUBLIC_API_URL=http://localhost:8002
+
+# Iniciar desarrollo
+npm run dev
 ```
 
-5. **Iniciar MongoDB**
+#### 4. **Servicios Opcionales**
 ```bash
-# Si tienes MongoDB instalado localmente
-mongod
-
-# O usando Docker
+# MongoDB
 docker run -d -p 27017:27017 --name mongodb mongo:latest
+
+# Redis (para analytics)
+docker run -d -p 6379:6379 --name redis redis:alpine
 ```
 
-6. **Iniciar el Backend**
+### 🔑 **Gestión de Administradores**
+
 ```bash
 cd backend
-uvicorn server:app --reload --port 8001
+
+# Listar administradores existentes
+python3 admin_manager.py list
+
+# Crear admin por defecto
+python3 admin_manager.py create-default
+
+# Crear admin personalizado
+python3 admin_manager.py create "Nombre" "email@domain.com" "password" "telefono"
 ```
 
-7. **Iniciar el Frontend**
-```bash
-cd frontend
-npm start
-# o
-yarn start
+## 🎯 Funcionalidades Implementadas
+
+### ✅ **Completadas**
+- [x] Configuración completa de Next.js 14 con App Router
+- [x] Sistema de autenticación JWT funcional
+- [x] Componentes UI modernos con shadcn/ui
+- [x] Gestión de estado con Zustand
+- [x] Navegación responsive con dark/light mode
+- [x] Integración Frontend-Backend completa
+- [x] Sistema de tipos TypeScript
+- [x] Panel de administración base
+- [x] Gestión de usuarios administradores
+- [x] Sistema de notificaciones
+
+### 🔄 **En Desarrollo**
+- [ ] CRUD completo de eventos culturales
+- [ ] Sistema de reservas con códigos QR
+- [ ] Dashboard administrativo con métricas
+- [ ] Upload y gestión de imágenes
+- [ ] Sistema de notificaciones por email
+- [ ] Analytics avanzado con ML
+
+### 📋 **Roadmap Futuro**
+- [ ] PWA (Progressive Web App)
+- [ ] Notificaciones push en tiempo real
+- [ ] Integración con redes sociales
+- [ ] Sistema de reviews y comentarios
+- [ ] Marketplace de eventos
+- [ ] API pública para terceros
+
+## 📱 Características de Diseño
+
+### 🎨 **UI/UX Moderno**
+- **Mobile-First**: Diseño responsivo optimizado
+- **Dark/Light Mode**: Soporte completo de temas
+- **Animaciones**: Micro-interacciones suaves
+- **Accesibilidad**: Cumple estándares WCAG
+- **Performance**: Optimizaciones automáticas
+
+### 🌈 **Sistema de Colores CCB**
+```css
+/* Brand Colors */
+--ccb-blue: #003087      /* Azul principal */
+--ccb-lightblue: #0066CC /* Azul claro */
+--ccb-gold: #FFD700      /* Dorado */
+--ccb-gray: #F5F5F5      /* Gris suave */
 ```
 
-La aplicación estará disponible en:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8001
-- Documentación API: http://localhost:8001/docs
+## 🔐 Seguridad
 
-## 🔧 Configuración
+- **JWT Authentication**: Tokens seguros con expiración
+- **Validación Robusta**: Zod para schemas del frontend
+- **CORS Configurado**: Protección contra solicitudes maliciosas
+- **Sanitización**: Limpieza de datos de entrada
+- **Rate Limiting**: Protección contra ataques de fuerza bruta
+- **Environment Variables**: Configuración segura
 
-### Variables de Entorno - Backend
+## 📊 Performance
 
-Crear archivo `backend/.env`:
+- **Lazy Loading**: Carga bajo demanda de componentes
+- **Code Splitting**: Optimización automática de Next.js
+- **Image Optimization**: Componente optimizado de Next.js
+- **Caching Estratégico**: Redis para datos frecuentes
+- **Bundle Analysis**: Monitoreo continuo
 
-```env
-# Base de datos
-MONGO_URL=mongodb://localhost:27017/cultural_center
+## 🤝 Contribución
 
-# Seguridad
-SECRET_KEY=tu-clave-secreta-super-segura
-ALGORITHM=HS256
+### 🔀 **Flujo de Trabajo**
+1. Fork el proyecto
+2. Crear rama: `git checkout -b feature/nueva-caracteristica`
+3. Commit: `git commit -m 'feat: agregar nueva característica'`
+4. Push: `git push origin feature/nueva-caracteristica`
+5. Abrir Pull Request
 
-# SendGrid
-SENDGRID_API_KEY=tu-api-key-de-sendgrid
-SENDGRID_FROM_EMAIL=noreply@tudominio.com
+### 📏 **Estándares de Código**
+- **ESLint + Prettier**: Configuración estricta
+- **Conventional Commits**: Formato estándar
+- **TypeScript**: Tipado estricto
+- **Component Documentation**: JSDoc cuando sea necesario
 
-# Configuración general
-ENVIRONMENT=development
-DEBUG=True
-```
+## 📄 Documentación
 
-### Variables de Entorno - Frontend
-
-Crear archivo `frontend/.env`:
-
-```env
-REACT_APP_BACKEND_URL=http://localhost:8001
-REACT_APP_WEBSOCKET_URL=ws://localhost:8001
-```
-
-## 📖 Uso
-
-### Para Usuarios
-
-1. **Registro**: Crear una cuenta con información personal
-2. **Explorar Eventos**: Ver eventos disponibles por categoría
-3. **Hacer Reservas**: Reservar espacios en eventos
-4. **Check-in**: Usar QR, código, email o teléfono
-
-### Para Administradores
-
-1. **Gestión de Eventos**: Crear, editar y eliminar eventos
-2. **Gestión de Usuarios**: Ver, editar y gestionar usuarios
-3. **Reportes**: Generar reportes de asistencia y analytics
-4. **Dashboard**: Monitorear métricas en tiempo real
-
-### Credenciales de Prueba
-
-```
-Admin:
-Email: admin@culturalcenter.com
-Password: admin123
-
-Usuario:
-Email: user@example.com
-Password: user123
-```
-
-## 🛠️ Desarrollo
-
-### Estructura del Proyecto
-
-```
-cultural-center/
-├── frontend/               # Aplicación React
-│   ├── src/
-│   │   ├── components/    # Componentes React
-│   │   ├── App.js        # Componente principal
-│   │   └── index.js      # Punto de entrada
-│   └── package.json
-│
-├── backend/               # API FastAPI
-│   ├── server.py         # Servidor principal
-│   ├── analytics/        # Sistema de analytics
-│   ├── reports/          # Generación de reportes
-│   └── requirements.txt
-│
-└── docs/                 # Documentación adicional
-```
-
-### Comandos Útiles
-
-```bash
-# Backend - Ejecutar tests
-cd backend
-pytest
-
-# Frontend - Ejecutar tests
-cd frontend
-npm test
-
-# Generar build de producción
-cd frontend
-npm run build
-
-# Linting
-cd frontend
-npm run lint
-```
-
-## 📊 API Endpoints
-
-### Autenticación
-- `POST /api/register` - Registro de usuarios
-- `POST /api/login` - Inicio de sesión
-
-### Eventos
-- `GET /api/events` - Listar eventos
-- `POST /api/events` - Crear evento (admin)
-- `GET /api/categories` - Listar categorías
-
-### Reservas
-- `POST /api/reservations` - Crear reserva
-- `GET /api/reservations` - Mis reservas
-- `DELETE /api/reservations/{id}` - Cancelar reserva
-- `POST /api/checkin` - Check-in
-
-### Admin
-- `GET /api/admin/users` - Listar usuarios
-- `GET /api/admin/stats` - Estadísticas
-- `GET /api/admin/reports/*` - Generar reportes
-
-[Ver documentación completa de la API](http://localhost:8001/docs)
-
-## 🧪 Testing
-
-```bash
-# Ejecutar todos los tests
-npm test
-
-# Tests con coverage
-npm run test:coverage
-
-# Tests del backend
-cd backend && pytest
-
-# Tests e2e
-npm run test:e2e
-```
+- **[API Documentation](http://localhost:8002/docs)**: Swagger UI interactiva
+- **[Backend Setup](backend/README.md)**: Guía de configuración del backend
+- **[Architecture Guide](README_NUEVO.md)**: Documentación técnica detallada
 
 ## 🚀 Deployment
 
-### Docker
-
+### 🐳 **Docker**
 ```bash
-# Construir y ejecutar con Docker Compose
+# Próximamente: Docker Compose setup
 docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Detener servicios
-docker-compose down
 ```
 
-### Producción
-
-1. Configurar variables de entorno de producción
-2. Construir frontend: `npm run build`
-3. Servir archivos estáticos con nginx
-4. Ejecutar backend con gunicorn/uvicorn
-5. Configurar SSL/TLS
-
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crear rama de feature (`git checkout -b feature/AmazingFeature`)
-3. Commit cambios (`git commit -m 'Add AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir Pull Request
-
-### Guía de Estilo
-
-- Frontend: [Airbnb React Style Guide](https://github.com/airbnb/javascript/tree/master/react)
-- Backend: [PEP 8](https://www.python.org/dev/peps/pep-0008/)
-- Commits: [Conventional Commits](https://www.conventionalcommits.org/)
-
-## 📝 Licencia
-
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
-
-## 👥 Equipo
-
-- **Desarrollo**: Equipo de TI - Centro Cultural Banreservas
-- **Diseño**: Departamento de Comunicaciones
-- **Analytics**: Departamento de Data Science
+### ☁️ **Cloud Deploy**
+- **Frontend**: Vercel, Netlify
+- **Backend**: Railway, Heroku, DigitalOcean
+- **Database**: MongoDB Atlas
+- **Cache**: Redis Cloud
 
 ## 📞 Soporte
 
-- Email: soporte@culturalcenter.com
-- Documentación: [Wiki del Proyecto](https://github.com/tu-usuario/cultural-center/wiki)
-- Issues: [GitHub Issues](https://github.com/tu-usuario/cultural-center/issues)
+- **Issues**: [GitHub Issues](https://github.com/onick/VUECCB/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/onick/VUECCB/discussions)
+- **Email**: soporte@banreservas.com.do
+
+## 📝 Licencia
+
+Este proyecto está bajo la Licencia MIT - ver [LICENSE](LICENSE) para más detalles.
+
+## 👥 Equipo
+
+<div align="center">
+
+**Centro Cultural Banreservas - Equipo de Desarrollo**
+
+*Transformando la experiencia cultural digital* 🎭✨
 
 ---
 
-<div align="center">
-  Hecho con ❤️ por el equipo del Centro Cultural Banreservas
+[![Built with ❤️](https://img.shields.io/badge/Built%20with-❤️-red)](https://github.com/onick/VUECCB)
+[![Next.js](https://img.shields.io/badge/Powered%20by-Next.js-black)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688)](https://fastapi.tiangolo.com/)
+
 </div>
