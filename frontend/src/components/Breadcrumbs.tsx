@@ -15,6 +15,7 @@ interface BreadcrumbItem {
 const pathNameMap: Record<string, string> = {
   admin: 'Dashboard',
   events: 'Eventos',
+  calendar: 'Calendario',
   create: 'Crear Evento',
   checkin: 'Check-in',
   users: 'Usuarios',

@@ -39,6 +39,7 @@ const sidebarItems: SidebarItem[] = [
     icon: Calendar,
     subItems: [
       { name: 'Lista de Eventos', href: '/admin/events', icon: Calendar },
+      { name: 'Calendario', href: '/admin/events/calendar', icon: Calendar },
       { name: 'Crear Evento', href: '/admin/events/create', icon: Calendar }
     ]
   },
