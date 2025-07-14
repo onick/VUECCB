@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import SystemStatus from '@/components/SystemStatus';
 import { 
   Calendar, 
   Users, 
@@ -271,6 +272,9 @@ export default function AdminDashboard() {
           </button>
         </div>
       </div>
+
+      {/* System Status */}
+      <SystemStatus className="mb-6" />
 
       {/* Métricas Principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

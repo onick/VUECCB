@@ -1,213 +1,324 @@
+'use client';
+
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, 
+  CheckCircle, 
+  AlertCircle, 
+  Clock, 
+  QrCode,
+  User,
+  Mail,
+  Calendar,
+  Loader2
+} from 'lucide-react';
+
+type CheckInMethod = 'qr' | 'code' | 'email' | 'name';
+type CheckInStatus = 'idle' | 'searching' | 'found' | 'success' | 'error';
+
+interface CheckInData {
+  id: string;
+  userName: string;
+  userEmail: string;
+  eventTitle: string;
+  eventDate: string;
+  code: string;
+  status: 'pending' | 'checked_in';
 }
-                onChange={(e) => setSearchValue(e.target.value)}
-                placeholder={methods.find(m => m.id === method)?.placeholder}
-                className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue dark:bg-gray-700 dark:text-white"
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                disabled={checkInStatus === 'searching' || checkInStatus === 'success'}
-              />
-              <button
-                onClick={handleSearch}
-                disabled={!searchValue.trim() || checkInStatus === 'searching' || checkInStatus === 'success'}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-ccb-blue text-white rounded-md hover:bg-ccb-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
 
-          {/* Estados de búsqueda */}
-          {checkInStatus === 'searching' && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center justify-center py-8"
+interface CheckInSystemProps {
+  onCheckInSuccess?: (data: CheckInData) => void;
+}
+
+const checkInMethods = [
+  {
+    id: 'qr' as CheckInMethod,
+    name: 'Código QR',
+    icon: QrCode,
+    placeholder: 'Escanear código QR...',
+    description: 'Escanea el código QR del ticket'
+  },
+  {
+    id: 'code' as CheckInMethod,
+    name: 'Código',
+    icon: Search,
+    placeholder: 'Ingresa el código de reserva',
+    description: 'Código de 8 caracteres'
+  },
+  {
+    id: 'email' as CheckInMethod,
+    name: 'Email',
+    icon: Mail,
+    placeholder: 'Buscar por email',
+    description: 'Email del participante'
+  },
+  {
+    id: 'name' as CheckInMethod,
+    name: 'Nombre',
+    icon: User,
+    placeholder: 'Buscar por nombre',
+    description: 'Nombre completo'
+  }
+];
+
+export default function CheckInSystem({ onCheckInSuccess }: CheckInSystemProps) {
+  const [method, setMethod] = useState<CheckInMethod>('qr');
+  const [searchValue, setSearchValue] = useState('');
+  const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>('idle');
+  const [foundReservation, setFoundReservation] = useState<CheckInData | null>(null);
+  const [error, setError] = useState('');
+
+  const handleSearch = async () => {
+    if (!searchValue.trim()) return;
+
+    setCheckInStatus('searching');
+    setError('');
+
+    try {
+      // Simular búsqueda API
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Datos mock basados en el tipo de búsqueda
+      const mockReservation: CheckInData = {
+        id: Math.random().toString(36).substr(2, 9),
+        userName: method === 'name' ? searchValue : 'María García López',
+        userEmail: method === 'email' ? searchValue : 'maria.garcia@email.com',
+        eventTitle: 'Concierto de Jazz Latino',
+        eventDate: new Date().toISOString(),
+        code: method === 'code' ? searchValue : 'ABC123XY',
+        status: 'pending'
+      };
+
+      // Simular casos de error ocasionales
+      if (Math.random() < 0.2) {
+        throw new Error('Reserva no encontrada');
+      }
+
+      setFoundReservation(mockReservation);
+      setCheckInStatus('found');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error en la búsqueda');
+      setCheckInStatus('error');
+    }
+  };
+
+  const handleConfirmCheckIn = async () => {
+    if (!foundReservation) return;
+
+    setCheckInStatus('searching');
+
+    try {
+      // Simular API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const checkedInData = {
+        ...foundReservation,
+        status: 'checked_in' as const,
+        checkedInAt: new Date().toISOString()
+      };
+
+      setCheckInStatus('success');
+      onCheckInSuccess?.(checkedInData);
+
+      // Reset después de 3 segundos
+      setTimeout(resetForm, 3000);
+    } catch (err) {
+      setError('Error al confirmar check-in');
+      setCheckInStatus('error');
+    }
+  };
+
+  const resetForm = () => {
+    setSearchValue('');
+    setFoundReservation(null);
+    setCheckInStatus('idle');
+    setError('');
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-DO', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Method Selection */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {checkInMethods.map((m) => {
+          const Icon = m.icon;
+          return (
+            <button
+              key={m.id}
+              onClick={() => {
+                setMethod(m.id);
+                resetForm();
+              }}
+              className={`
+                p-3 rounded-lg border-2 transition-all duration-200 text-center
+                ${method === m.id 
+                  ? 'border-ccb-blue bg-ccb-blue/10 text-ccb-blue' 
+                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                }
+              `}
             >
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ccb-blue"></div>
-              <span className="ml-3 text-gray-600 dark:text-gray-300">Buscando reserva...</span>
-            </motion.div>
-          )}
+              <Icon size={20} className="mx-auto mb-2" />
+              <p className="text-sm font-medium">{m.name}</p>
+            </button>
+          );
+        })}
+      </div>
 
-          {checkInStatus === 'error' && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-            >
-              <div className="flex items-center">
-                <X className="w-5 h-5 text-red-500 mr-3" />
-                <div>
-                  <h4 className="text-sm font-medium text-red-800 dark:text-red-200">
-                    No se encontró la reserva
-                  </h4>
-                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                    {errorMessage}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={handleReset}
-                className="mt-3 px-3 py-1 text-sm text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 rounded transition-colors"
-              >
-                Intentar de nuevo
-              </button>
-            </motion.div>
-          )}
-
-          {checkInStatus === 'success' && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center"
-            >
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
-                ¡Check-in Exitoso!
-              </h3>
-              <p className="text-green-700 dark:text-green-300">
-                El check-in se ha realizado correctamente
-              </p>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-
-      {/* Información de la reserva encontrada */}
-      {foundReservation && checkInStatus === 'found' && (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+      {/* Search Input */}
+      <div className="relative">
+        <input
+          type="text"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          placeholder={checkInMethods.find(m => m.id === method)?.placeholder}
+          className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          disabled={checkInStatus === 'searching' || checkInStatus === 'success'}
+        />
+        <button
+          onClick={handleSearch}
+          disabled={!searchValue.trim() || checkInStatus === 'searching' || checkInStatus === 'success'}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-ccb-blue hover:bg-ccb-blue/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Reserva Encontrada
-          </h3>
+          {checkInStatus === 'searching' ? (
+            <Loader2 size={20} className="animate-spin" />
+          ) : (
+            <Search size={20} />
+          )}
+        </button>
+      </div>
 
-          <div className="space-y-4">
-            {/* Información del usuario */}
-            <div className="flex items-start space-x-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <div className="w-12 h-12 bg-ccb-blue/10 rounded-full flex items-center justify-center">
-                <User className="w-6 h-6 text-ccb-blue" />
+      {/* Method Description */}
+      <p className="text-sm text-gray-600 text-center">
+        {checkInMethods.find(m => m.id === method)?.description}
+      </p>
+
+      {/* Results */}
+      <AnimatePresence mode="wait">
+        {/* Error State */}
+        {checkInStatus === 'error' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-red-50 border border-red-200 rounded-lg p-4"
+          >
+            <div className="flex items-center space-x-3">
+              <AlertCircle className="text-red-500" size={20} />
+              <div>
+                <h4 className="text-red-800 font-medium">Error</h4>
+                <p className="text-red-600 text-sm">{error}</p>
               </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-gray-900 dark:text-white">
-                  {foundReservation.user?.nombre} {foundReservation.user?.apellido}
-                </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {foundReservation.user?.email}
-                </p>
-                {foundReservation.user?.telefono && (
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    {foundReservation.user.telefono}
-                  </p>
-                )}
+            </div>
+            <button
+              onClick={resetForm}
+              className="mt-3 text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Intentar nuevamente
+            </button>
+          </motion.div>
+        )}
+
+        {/* Found Reservation */}
+        {checkInStatus === 'found' && foundReservation && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-blue-50 border border-blue-200 rounded-lg p-6"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Clock className="text-blue-500" size={24} />
+                <div>
+                  <h4 className="text-blue-800 font-semibold">Reserva Encontrada</h4>
+                  <p className="text-blue-600 text-sm">Confirma los datos antes de proceder</p>
+                </div>
               </div>
             </div>
 
-            {/* Información del evento */}
-            {foundReservation.event && (
-              <div className="space-y-3">
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {formatDate(foundReservation.event.date)} a las {foundReservation.event.time}
-                </div>
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                  <MapPin className="w-4 h-4 mr-2" />
-                  {foundReservation.event.location}
-                </div>
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center space-x-3">
+                <User size={16} className="text-gray-400" />
+                <span className="text-gray-900 font-medium">{foundReservation.userName}</span>
               </div>
-            )}
-
-            {/* Detalles de la reserva */}
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-              <div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Código:</span>
-                <p className="font-mono text-lg text-gray-900 dark:text-white">
-                  {foundReservation.codigo_reserva}
-                </p>
+              <div className="flex items-center space-x-3">
+                <Mail size={16} className="text-gray-400" />
+                <span className="text-gray-600">{foundReservation.userEmail}</span>
               </div>
-              <div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Asistentes:</span>
-                <p className="text-lg text-gray-900 dark:text-white">
-                  {foundReservation.numero_asistentes}
-                </p>
+              <div className="flex items-center space-x-3">
+                <Calendar size={16} className="text-gray-400" />
+                <span className="text-gray-900">{foundReservation.eventTitle}</span>
               </div>
-              <div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Estado:</span>
-                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                  foundReservation.estado === 'confirmada' 
-                    ? 'bg-green-100 text-green-800' 
-                    : foundReservation.estado === 'asistio'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {foundReservation.estado === 'confirmada' ? 'Confirmada' : 
-                   foundReservation.estado === 'asistio' ? 'Ya asistió' : 
-                   foundReservation.estado}
-                </span>
-              </div>
-              <div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Reservado:</span>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {formatDate(foundReservation.created_at)}
-                </p>
+              <div className="flex items-center space-x-3">
+                <QrCode size={16} className="text-gray-400" />
+                <span className="text-gray-600 font-mono">{foundReservation.code}</span>
               </div>
             </div>
 
-            {/* Check-in previo */}
-            {foundReservation.fecha_checkin && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <div className="flex items-center">
-                  <Check className="w-5 h-5 text-blue-600 mr-2" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                      Check-in ya realizado
-                    </p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      {formatDate(foundReservation.fecha_checkin)} a las {formatTime(foundReservation.fecha_checkin)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Botones de acción */}
-            <div className="flex space-x-3 pt-4">
+            <div className="flex space-x-3">
               <button
-                onClick={handleReset}
-                className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                onClick={handleConfirmCheckIn}
+                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                Confirmar Check-in
+              </button>
+              <button
+                onClick={resetForm}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancelar
               </button>
-              
-              {foundReservation.estado === 'confirmada' && (
-                <button
-                  onClick={handleCheckIn}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-ccb-blue text-white rounded-lg hover:bg-ccb-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>{loading ? 'Procesando...' : 'Realizar Check-in'}</span>
-                </button>
-              )}
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
 
-      {/* Instrucciones */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-          Métodos de Check-in Disponibles:
-        </h4>
-        <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-          <li>• <strong>Código QR:</strong> Escanea el código QR desde la reserva</li>
-          <li>• <strong>Código:</strong> Ingresa el código alfanumérico de 8 caracteres</li>
-          <li>• <strong>Email:</strong> Busca por dirección de correo electrónico</li>
-          <li>• <strong>Teléfono:</strong> Busca por número de teléfono</li>
-        </ul>
-      </div>
+        {/* Success State */}
+        {checkInStatus === 'success' && foundReservation && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-green-50 border border-green-200 rounded-lg p-6 text-center"
+          >
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h4 className="text-green-800 font-semibold text-lg mb-2">
+              ¡Check-in Exitoso!
+            </h4>
+            <p className="text-green-600 mb-4">
+              {foundReservation.userName} ha sido registrado correctamente
+            </p>
+            <p className="text-sm text-green-700">
+              {foundReservation.eventTitle}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick Stats */}
+      {checkInStatus === 'idle' && (
+        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-ccb-blue">132</p>
+            <p className="text-sm text-gray-600">Check-ins Hoy</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-green-600">84.6%</p>
+            <p className="text-sm text-gray-600">Tasa de Éxito</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
