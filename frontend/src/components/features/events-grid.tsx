@@ -16,15 +16,18 @@ export function EventsGrid() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
   useEffect(() => {
-    fetchEvents();
+    fetchEvents().catch(console.error);
   }, [fetchEvents]);
 
   const handleCategoryFilter = (category: string) => {
     const newCategory = category === selectedCategory ? "" : category;
     setSelectedCategory(newCategory);
     setFilters({ category: newCategory || undefined });
-    fetchEvents();
+    fetchEvents().catch(console.error);
   };
+
+  // Asegurar que events sea siempre un array
+  const safeEvents = events || [];
 
   if (isLoading) {
     return (
@@ -96,8 +99,8 @@ export function EventsGrid() {
 
         {/* Events Grid */}
         <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {events.length > 0 ? (
-            events.slice(0, 6).map((event: Event) => (
+          {safeEvents.length > 0 ? (
+            safeEvents.slice(0, 6).map((event: Event) => (
               <EventCard key={event.id} event={event} />
             ))
           ) : (
@@ -110,7 +113,7 @@ export function EventsGrid() {
           )}
         </div>
 
-        {events.length > 6 && (
+        {safeEvents.length > 6 && (
           <div className="mt-12 text-center">
             <Button size="lg" asChild>
               <Link href="/events">Ver todos los eventos</Link>
@@ -123,26 +126,26 @@ export function EventsGrid() {
 }
 
 function EventCard({ event }: { event: Event }) {
-  const isAvailable = event.reservas_actuales < event.capacidad_maxima;
-  const spotsLeft = event.capacidad_maxima - event.reservas_actuales;
+  const isAvailable = (event.available_spots || 0) > 0;
+  const spotsLeft = event.available_spots || 0;
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
       <div className="relative overflow-hidden">
-        {event.imagen_url ? (
+        {event.image_url ? (
           <img
-            src={event.imagen_url}
-            alt={event.titulo}
+            src={event.image_url}
+            alt={event.title}
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-48 bg-gradient-to-br from-ccb-blue to-ccb-lightblue flex items-center justify-center">
-            <span className="text-6xl">{getCategoryIcon(event.categoria)}</span>
+            <span className="text-6xl">{getCategoryIcon(event.category)}</span>
           </div>
         )}
         <div className="absolute top-3 left-3">
           <Badge variant="secondary" className="bg-white/90 text-ccb-blue">
-            {event.categoria}
+            {event.category}
           </Badge>
         </div>
         <div className="absolute top-3 right-3">
@@ -157,29 +160,29 @@ function EventCard({ event }: { event: Event }) {
 
       <CardHeader className="pb-3">
         <CardTitle className="line-clamp-2 text-lg group-hover:text-ccb-blue transition-colors">
-          {event.titulo}
+          {event.title}
         </CardTitle>
         <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-          {event.descripcion}
+          {event.description}
         </p>
       </CardHeader>
 
       <CardContent className="space-y-3">
         <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
           <Calendar className="w-4 h-4 mr-2 text-ccb-blue" />
-          {formatDate(event.fecha_inicio)}
+          {formatDate(event.date)}
         </div>
         <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
           <Clock className="w-4 h-4 mr-2 text-ccb-blue" />
-          {formatTime(event.hora_inicio)} - {formatTime(event.hora_fin)}
+          {event.time}
         </div>
         <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
           <MapPin className="w-4 h-4 mr-2 text-ccb-blue" />
-          {event.ubicacion}
+          {event.location}
         </div>
         <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
           <Users className="w-4 h-4 mr-2 text-ccb-blue" />
-          {event.reservas_actuales}/{event.capacidad_maxima} asistentes
+          {(event.capacity - (event.available_spots || 0))}/{event.capacity} asistentes
         </div>
       </CardContent>
 
@@ -191,7 +194,7 @@ function EventCard({ event }: { event: Event }) {
         >
           {isAvailable ? (
             <Link href={`/events/${event.id}`}>
-              {event.es_gratuito ? "Reservar Gratis" : `Reservar - $${event.precio}`}
+              Reservar Evento
             </Link>
           ) : (
             "No disponible"

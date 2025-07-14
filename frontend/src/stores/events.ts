@@ -66,17 +66,21 @@ export const useEventsStore = create<EventsState & EventsActions>((set, get) => 
       );
 
       set({
-        events: response.items,
+        events: response.items || [],
         pagination: {
-          page: response.page,
-          per_page: response.per_page,
-          total: response.total,
-          pages: response.pages,
+          page: response.page || 1,
+          per_page: response.per_page || 12,
+          total: response.total || 0,
+          pages: response.pages || 0,
         },
         isLoading: false,
       });
     } catch (error) {
-      set({ isLoading: false });
+      console.error("Error fetching events:", error);
+      set({ 
+        events: [], // Asegurar que events sea siempre un array
+        isLoading: false 
+      });
       throw error;
     }
   },

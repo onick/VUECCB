@@ -15,23 +15,16 @@ export interface User {
 
 export interface Event {
   id: string;
-  titulo: string;
-  descripcion: string;
-  categoria: EventCategory;
-  fecha_inicio: string;
-  fecha_fin: string;
-  hora_inicio: string;
-  hora_fin: string;
-  capacidad_maxima: number;
-  reservas_actuales: number;
-  imagen_url?: string;
-  ubicacion: string;
-  precio?: number;
-  es_gratuito: boolean;
-  requiere_reserva: boolean;
-  estado: EventStatus;
+  title: string;
+  description: string;
+  category: EventCategory;
+  date: string;
+  time: string;
+  capacity: number;
+  location: string;
+  image_url?: string;
+  available_spots?: number;
   created_at: string;
-  updated_at: string;
 }
 
 export interface Reservation {
