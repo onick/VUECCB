@@ -1,11 +1,11 @@
 """
-Services module for the Cultural Center backend.
+Services module exports
 """
 
-from .email_service import email_service
-from .qr_service import qr_service
+from .user_service import user_service
+from .event_service import event_service
 
 __all__ = [
-    "email_service",
-    "qr_service"
+    "user_service",
+    "event_service"
 ]

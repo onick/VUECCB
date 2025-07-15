@@ -1,105 +1,157 @@
 """
-Database connection and management module.
+Database connection and operations for MongoDB
+Centralizes all database logic
 """
 
-from pymongo import MongoClient
-from pymongo.database import Database
-from pymongo.errors import ConnectionFailure
 import logging
-from typing import Optional
-
-from .config import settings
+from datetime import datetime
+from typing import Optional, Dict, Any
+from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-class DatabaseManager:
-    """Manages MongoDB connection and database operations."""
+class Database:
+    """MongoDB database manager"""
     
     def __init__(self):
-        self._client: Optional[MongoClient] = None
-        self._db: Optional[Database] = None
-    
-    def connect(self) -> Database:
-        """
-        Establish connection to MongoDB.
-        Returns the database instance.
-        """
+        self.client: Optional[MongoClient] = None
+        self.db = None
+        
+    async def initialize(self):
+        """Initialize database connection and indexes"""
         try:
-            if not self._client:
-                self._client = MongoClient(settings.get_mongo_url())
-                # Test the connection
-                self._client.admin.command('ping')
-                logger.info(f"Successfully connected to MongoDB at {settings.MONGO_URL}")
+            # Create MongoDB connection
+            self.client = MongoClient(
+                settings.MONGO_URL,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=5000
+            )
             
-            if not self._db:
-                self._db = self._client[settings.DATABASE_NAME]
-                self._create_indexes()
+            # Test connection
+            self.client.admin.command('ping')
             
-            return self._db
+            # Get database
+            self.db = self.client[settings.DATABASE_NAME]
             
-        except ConnectionFailure as e:
-            logger.error(f"Failed to connect to MongoDB: {e}")
+            # Create indexes for performance
+            await self._create_indexes()
+            
+            logger.info(f"✅ Connected to MongoDB: {settings.DATABASE_NAME}")
+            
+        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+            logger.error(f"❌ Failed to connect to MongoDB: {e}")
             raise
     
-    def _create_indexes(self):
-        """Create database indexes for better performance."""
+    async def _create_indexes(self):
+        """Create database indexes for better performance"""
         try:
             # Users collection indexes
-            self._db.users.create_index("email", unique=True)
-            self._db.users.create_index("created_at")
-            self._db.users.create_index("is_admin")
-            self._db.users.create_index("deleted")
-            self._db.users.create_index("location")
-            self._db.users.create_index("age")
-            self._db.users.create_index([("name", "text"), ("email", "text"), ("location", "text")])
-            
-            # Reservations collection indexes
-            self._db.reservations.create_index("user_id")
-            self._db.reservations.create_index("event_id")
-            self._db.reservations.create_index("created_at")
-            self._db.reservations.create_index("status")
-            self._db.reservations.create_index("checkin_code", unique=True, sparse=True)
+            self.db.users.create_index("email", unique=True)
+            self.db.users.create_index("created_at")
+            self.db.users.create_index("is_admin")
+            self.db.users.create_index("deleted")
+            self.db.users.create_index("location")
+            self.db.users.create_index("age")
+            self.db.users.create_index([
+                ("name", "text"), 
+                ("email", "text"), 
+                ("location", "text")
+            ])
             
             # Events collection indexes
-            self._db.events.create_index("date")
-            self._db.events.create_index("category")
-            self._db.events.create_index("created_at")
-            self._db.events.create_index([("title", "text"), ("description", "text")])
+            self.db.events.create_index("date")
+            self.db.events.create_index("category")
+            self.db.events.create_index("created_at")
+            self.db.events.create_index("published")
+            self.db.events.create_index([
+                ("title", "text"),
+                ("description", "text"),
+                ("tags", "text")
+            ])
             
-            logger.info("Database indexes created successfully")
+            # Reservations collection indexes
+            self.db.reservations.create_index("user_id")
+            self.db.reservations.create_index("event_id")
+            self.db.reservations.create_index("created_at")
+            self.db.reservations.create_index("status")
+            self.db.reservations.create_index("reservation_code", unique=True)
+            
+            # Check-ins collection indexes
+            self.db.checkins.create_index("reservation_id")
+            self.db.checkins.create_index("event_id")
+            self.db.checkins.create_index("user_id")
+            self.db.checkins.create_index("created_at")
+            
+            # Analytics collection indexes
+            self.db.analytics.create_index("timestamp")
+            self.db.analytics.create_index("event_type")
+            self.db.analytics.create_index("user_id")
+            
+            logger.info("✅ Database indexes created successfully")
+            
         except Exception as e:
-            logger.warning(f"Some indexes may already exist: {e}")
+            logger.warning(f"⚠️ Some indexes may already exist: {e}")
     
-    def disconnect(self):
-        """Close the database connection."""
-        if self._client:
-            self._client.close()
-            self._client = None
-            self._db = None
-            logger.info("Disconnected from MongoDB")
-    
-    def get_database(self) -> Database:
-        """Get the database instance, connecting if necessary."""
-        if not self._db:
-            return self.connect()
-        return self._db
-    
-    def health_check(self) -> bool:
-        """Check if the database connection is healthy."""
+    async def health_check(self) -> Dict[str, Any]:
+        """Check database health"""
         try:
-            if self._client:
-                self._client.admin.command('ping')
-                return True
-            return False
-        except:
-            return False
+            if not self.client:
+                return {"status": "disconnected", "error": "No client"}
+            
+            # Ping database
+            result = self.client.admin.command('ping')
+            
+            # Get basic stats
+            stats = self.db.command("dbstats")
+            
+            return {
+                "status": "connected",
+                "ping": result.get("ok", 0) == 1,
+                "database": settings.DATABASE_NAME,
+                "collections": stats.get("collections", 0),
+                "dataSize": stats.get("dataSize", 0),
+                "storageSize": stats.get("storageSize", 0)
+            }
+            
+        except Exception as e:
+            logger.error(f"Database health check failed: {e}")
+            return {"status": "error", "error": str(e)}
+    
+    async def close(self):
+        """Close database connection"""
+        if self.client:
+            self.client.close()
+            logger.info("✅ Database connection closed")
+    
+    def get_current_timestamp(self) -> str:
+        """Get current timestamp in ISO format"""
+        return datetime.utcnow().isoformat()
+    
+    # Collection getters for easy access
+    @property
+    def users(self):
+        return self.db.users if self.db else None
+    
+    @property 
+    def events(self):
+        return self.db.events if self.db else None
+    
+    @property
+    def reservations(self):
+        return self.db.reservations if self.db else None
+    
+    @property
+    def checkins(self):
+        return self.db.checkins if self.db else None
+    
+    @property
+    def analytics(self):
+        return self.db.analytics if self.db else None
 
 
-# Create a singleton instance
-db_manager = DatabaseManager()
-
-# Convenience function to get database
-def get_db() -> Database:
-    """Get the database instance."""
-    return db_manager.get_database()
+# Global database instance
+database = Database()
