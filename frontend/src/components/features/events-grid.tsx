@@ -5,29 +5,61 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin, Users, Filter } from "lucide-react";
-import { useEventsStore } from "@/stores/events";
+import { apiService } from "@/services/api";
 import { Event } from "@/types";
 import { formatDate, formatTime, getCategoryIcon } from "@/lib/utils";
+import { categoryToSpanish } from "@/utils/eventUtils";
 import Link from "next/link";
 import { EVENT_CATEGORIES } from "@/lib/constants";
 
 export function EventsGrid() {
-  const { events, isLoading, fetchEvents, setFilters, filters } = useEventsStore();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
+  const fetchEvents = async () => {
+    try {
+      setIsLoading(true);
+      console.log('Fetching events...');
+      const eventsData = await apiService.getEvents();
+      console.log('Events received:', eventsData);
+      // Normalize categories to Spanish
+      const normalizedEvents = eventsData.map(event => ({
+        ...event,
+        category: categoryToSpanish(event.category)
+      }));
+      console.log('Normalized events:', normalizedEvents);
+      setEvents(normalizedEvents as Event[]);
+    } catch (error) {
+      console.error('Error loading events:', error);
+      setEvents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchEvents().catch(console.error);
-  }, [fetchEvents]);
+    // Add a small delay to ensure proper hydration
+    const timer = setTimeout(() => {
+      fetchEvents();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleCategoryFilter = (category: string) => {
     const newCategory = category === selectedCategory ? "" : category;
     setSelectedCategory(newCategory);
-    setFilters({ category: newCategory || undefined });
-    fetchEvents().catch(console.error);
+    // Filter events locally for now
+    // In a real app, this would be handled by the API
   };
 
-  // Asegurar que events sea siempre un array
-  const safeEvents = events || [];
+  // Filter events by category if selected
+  const filteredEvents = selectedCategory 
+    ? events.filter(event => event.category === selectedCategory)
+    : events;
+  
+  const safeEvents = filteredEvents || [];
 
   if (isLoading) {
     return (

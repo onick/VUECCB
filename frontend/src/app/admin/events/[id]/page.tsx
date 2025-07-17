@@ -51,7 +51,7 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
       const eventData = await apiService.getEvent(params.id);
       console.log('Evento cargado:', eventData);
       
-      setEvent(eventData);
+      setEvent(eventData as Event);
     } catch (error) {
       console.error('Error loading event:', error);
       setError(error instanceof Error ? error.message : 'Error desconocido');

@@ -28,7 +28,7 @@ export default function EventsPage() {
   const [selectedStatus, setSelectedStatus] = useState<EventStatus | 'all'>('all');
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
 
-  const categories: EventCategory[] = SPANISH_CATEGORIES;
+  const categories: EventCategory[] = SPANISH_CATEGORIES as EventCategory[];
 
   const statuses: EventStatus[] = ["activo", "cancelado", "completado", "borrador"];
 
@@ -44,7 +44,7 @@ export default function EventsPage() {
       const eventsData = await apiService.getEvents();
       console.log('Eventos cargados desde API:', eventsData);
       
-      setEvents(eventsData);
+      setEvents(eventsData as Event[]);
     } catch (error) {
       console.error('Error loading events:', error);
       // Show user-friendly error

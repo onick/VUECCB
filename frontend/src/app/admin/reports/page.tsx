@@ -11,7 +11,7 @@ import {
   PieChart,
   BarChart3,
   Filter,
-  DateRange
+  CalendarDays
 } from 'lucide-react'
 
 export default function ReportsPage() {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -13,6 +13,7 @@ import {
   Calendar,
   Loader2
 } from 'lucide-react';
+import { apiService } from '@/services/api';
 
 type CheckInMethod = 'qr' | 'code' | 'email' | 'name';
 type CheckInStatus = 'idle' | 'searching' | 'found' | 'success' | 'error';
@@ -37,28 +38,32 @@ const checkInMethods = [
     name: 'Código QR',
     icon: QrCode,
     placeholder: 'Escanear código QR...',
-    description: 'Escanea el código QR del ticket'
+    description: 'Escanea el código QR del ticket',
+    apiMethod: 'qr_code'
   },
   {
     id: 'code' as CheckInMethod,
     name: 'Código',
     icon: Search,
     placeholder: 'Ingresa el código de reserva',
-    description: 'Código de 8 caracteres'
+    description: 'Código de 8 caracteres',
+    apiMethod: 'reservation_code'
   },
   {
     id: 'email' as CheckInMethod,
     name: 'Email',
     icon: Mail,
     placeholder: 'Buscar por email',
-    description: 'Email del participante'
+    description: 'Email del participante',
+    apiMethod: 'email'
   },
   {
     id: 'name' as CheckInMethod,
     name: 'Nombre',
     icon: User,
     placeholder: 'Buscar por nombre',
-    description: 'Nombre completo'
+    description: 'Nombre completo',
+    apiMethod: 'name'
   }
 ];
 
@@ -68,6 +73,23 @@ export default function CheckInSystem({ onCheckInSuccess }: CheckInSystemProps) 
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>('idle');
   const [foundReservation, setFoundReservation] = useState<CheckInData | null>(null);
   const [error, setError] = useState('');
+  const [stats, setStats] = useState({ todayCheckIns: 0, checkInRate: 0 });
+
+  useEffect(() => {
+    loadCheckInStats();
+  }, []);
+
+  const loadCheckInStats = async () => {
+    try {
+      const response = await apiService.getCheckInStats();
+      setStats({
+        todayCheckIns: response.checkins_today || 0,
+        checkInRate: response.checkin_rate || 0
+      });
+    } catch (error) {
+      console.error('Error loading check-in stats:', error);
+    }
+  };
 
   const handleSearch = async () => {
     if (!searchValue.trim()) return;
@@ -76,29 +98,25 @@ export default function CheckInSystem({ onCheckInSuccess }: CheckInSystemProps) 
     setError('');
 
     try {
-      // Simular búsqueda API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const currentMethod = checkInMethods.find(m => m.id === method);
+      if (!currentMethod) throw new Error('Método de check-in inválido');
 
-      // Datos mock basados en el tipo de búsqueda
-      const mockReservation: CheckInData = {
-        id: Math.random().toString(36).substr(2, 9),
-        userName: method === 'name' ? searchValue : 'María García López',
-        userEmail: method === 'email' ? searchValue : 'maria.garcia@email.com',
-        eventTitle: 'Concierto de Jazz Latino',
+      // For now, we'll show a mock reservation since server.py doesn't have a separate search endpoint
+      // In production, this would be a separate endpoint to preview reservations
+      const mockReservation = {
+        id: 'preview-reservation',
+        userName: 'Usuario - Búsqueda',
+        userEmail: 'Verifica el código antes de continuar',
+        eventTitle: 'Evento será mostrado tras verificación',
         eventDate: new Date().toISOString(),
-        code: method === 'code' ? searchValue : 'ABC123XY',
-        status: 'pending'
+        code: searchValue.trim(),
+        status: 'pending' as const
       };
-
-      // Simular casos de error ocasionales
-      if (Math.random() < 0.2) {
-        throw new Error('Reserva no encontrada');
-      }
 
       setFoundReservation(mockReservation);
       setCheckInStatus('found');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error en la búsqueda');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Error en la búsqueda');
       setCheckInStatus('error');
     }
   };
@@ -109,22 +127,39 @@ export default function CheckInSystem({ onCheckInSuccess }: CheckInSystemProps) 
     setCheckInStatus('searching');
 
     try {
-      // Simular API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const currentMethod = checkInMethods.find(m => m.id === method);
+      if (!currentMethod) throw new Error('Método de check-in inválido');
 
-      const checkedInData = {
-        ...foundReservation,
-        status: 'checked_in' as const,
-        checkedInAt: new Date().toISOString()
-      };
+      const response = await apiService.checkInUser(
+        currentMethod.apiMethod,
+        searchValue.trim()
+      );
 
-      setCheckInStatus('success');
-      onCheckInSuccess?.(checkedInData);
+      if (response.success) {
+        const checkedInData = {
+          id: response.reservation_id || foundReservation.id,
+          userName: response.user_name || foundReservation.userName,
+          userEmail: response.user_email || foundReservation.userEmail,
+          eventTitle: response.event_title || foundReservation.eventTitle,
+          eventDate: foundReservation.eventDate,
+          code: foundReservation.code,
+          status: 'checked_in' as const
+        };
 
-      // Reset después de 3 segundos
-      setTimeout(resetForm, 3000);
-    } catch (err) {
-      setError('Error al confirmar check-in');
+        setFoundReservation(checkedInData);
+        setCheckInStatus('success');
+        onCheckInSuccess?.(checkedInData);
+        
+        // Actualizar estadísticas
+        loadCheckInStats();
+
+        // Reset después de 3 segundos
+        setTimeout(resetForm, 3000);
+      } else {
+        throw new Error(response.message || 'Error al confirmar check-in');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Error al confirmar check-in');
       setCheckInStatus('error');
     }
   };
@@ -250,20 +285,13 @@ export default function CheckInSystem({ onCheckInSuccess }: CheckInSystemProps) 
 
             <div className="space-y-3 mb-6">
               <div className="flex items-center space-x-3">
-                <User size={16} className="text-gray-400" />
-                <span className="text-gray-900 font-medium">{foundReservation.userName}</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Mail size={16} className="text-gray-400" />
-                <span className="text-gray-600">{foundReservation.userEmail}</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Calendar size={16} className="text-gray-400" />
-                <span className="text-gray-900">{foundReservation.eventTitle}</span>
-              </div>
-              <div className="flex items-center space-x-3">
                 <QrCode size={16} className="text-gray-400" />
                 <span className="text-gray-600 font-mono">{foundReservation.code}</span>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800">
+                  Al confirmar el check-in, se verificará y procesará la reserva con los datos reales del sistema.
+                </p>
               </div>
             </div>
 
@@ -310,11 +338,11 @@ export default function CheckInSystem({ onCheckInSuccess }: CheckInSystemProps) 
       {checkInStatus === 'idle' && (
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
           <div className="text-center">
-            <p className="text-2xl font-bold text-ccb-blue">132</p>
+            <p className="text-2xl font-bold text-ccb-blue">{stats.todayCheckIns}</p>
             <p className="text-sm text-gray-600">Check-ins Hoy</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">84.6%</p>
+            <p className="text-2xl font-bold text-green-600">{stats.checkInRate}%</p>
             <p className="text-sm text-gray-600">Tasa de Éxito</p>
           </div>
         </div>

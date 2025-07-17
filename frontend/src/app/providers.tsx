@@ -1,7 +1,7 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
-import { Toaster } from "sonner";
+// import { Toaster } from "sonner";
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth";
 
@@ -21,7 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       {children}
-      <Toaster 
+      {/* <Toaster 
         position="top-right"
         toastOptions={{
           duration: 4000,
@@ -31,7 +31,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             border: "1px solid hsl(var(--border))",
           },
         }}
-      />
+      /> */}
     </ThemeProvider>
   );
 }

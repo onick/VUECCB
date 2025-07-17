@@ -102,7 +102,7 @@ export default function EditEventPage({ params }: EditEventPageProps) {
       const eventData = await apiService.getEvent(params.id);
       console.log('Evento cargado para edición:', eventData);
       
-      setEvent(eventData);
+      setEvent(eventData as Event);
       
       // Populate form with existing data
       const formData: EventFormData = {
