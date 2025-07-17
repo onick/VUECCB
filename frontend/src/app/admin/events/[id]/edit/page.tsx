@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,10 +16,12 @@ import {
   Save,
   ArrowLeft,
   Plus,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Event } from '@/types';
 import { apiService, EventCreate } from '@/services/api';
 import { SPANISH_CATEGORIES } from '@/utils/eventUtils';
 
@@ -45,17 +47,27 @@ type EventFormData = z.infer<typeof eventSchema>;
 // Event categories
 const categories = SPANISH_CATEGORIES;
 
-export default function CreateEventPage() {
+interface EditEventPageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function EditEventPage({ params }: EditEventPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newTag, setNewTag] = useState('');
+  const [event, setEvent] = useState<Event | null>(null);
   const router = useRouter();
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
     watch,
     setValue,
+    reset,
     getValues
   } = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -78,14 +90,55 @@ export default function CreateEventPage() {
 
   const watchedTags = watch('tags') || [];
 
+  useEffect(() => {
+    loadEvent();
+  }, [params.id]);
+
+  const loadEvent = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const eventData = await apiService.getEvent(params.id);
+      console.log('Evento cargado para edición:', eventData);
+      
+      setEvent(eventData);
+      
+      // Populate form with existing data
+      const formData: EventFormData = {
+        title: eventData.title || '',
+        description: eventData.description || '',
+        category: eventData.category || '',
+        date: eventData.date || '',
+        time: eventData.time || '',
+        location: eventData.location || 'Centro Cultural Banreservas',
+        capacity: eventData.capacity || 50,
+        price: 0, // Default price since it's not in the current Event type
+        tags: [], // Default tags since it's not in the current Event type
+        imageUrl: eventData.image_url || '',
+        requirements: '', // Default requirements since it's not in the current Event type
+        contactEmail: '',
+        contactPhone: ''
+      };
+      
+      reset(formData);
+      
+    } catch (error) {
+      console.error('Error loading event:', error);
+      setError(error instanceof Error ? error.message : 'Error desconocido');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onSubmit = async (data: EventFormData) => {
     setIsSubmitting(true);
     
     try {
-      console.log('Enviando evento:', data);
+      console.log('Actualizando evento:', data);
       
       // Prepare event data for API
-      const eventData: EventCreate = {
+      const eventData: Partial<EventCreate> = {
         title: data.title,
         description: data.description,
         category: data.category,
@@ -101,22 +154,22 @@ export default function CreateEventPage() {
           email: data.contactEmail || '',
           phone: data.contactPhone || ''
         },
-        published: true // Default to published
+        published: true
       };
       
       // Call real API
-      const createdEvent = await apiService.createEvent(eventData);
+      const updatedEvent = await apiService.updateEvent(params.id, eventData);
       
-      console.log('Evento creado exitosamente:', createdEvent);
-      alert('¡Evento creado exitosamente!');
+      console.log('Evento actualizado exitosamente:', updatedEvent);
+      alert('¡Evento actualizado exitosamente!');
       
-      // Redirect to events list
-      router.push('/admin/events');
+      // Redirect to event detail
+      router.push(`/admin/events/${params.id}`);
       
     } catch (error) {
-      console.error('Error al crear evento:', error);
+      console.error('Error al actualizar evento:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      alert(`Error al crear el evento: ${errorMessage}`);
+      alert(`Error al actualizar el evento: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -138,6 +191,50 @@ export default function CreateEventPage() {
     return today.toISOString().split('T')[0];
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-ccb-blue"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h2 className="text-xl font-semibold text-red-800 mb-2">Error al cargar evento</h2>
+          <p className="text-red-600 mb-4">{error}</p>
+          <Link 
+            href="/admin/events"
+            className="inline-flex items-center px-4 py-2 bg-ccb-blue text-white rounded-lg hover:bg-ccb-blue/90 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver a eventos
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+          <h2 className="text-xl font-semibold text-yellow-800 mb-2">Evento no encontrado</h2>
+          <p className="text-yellow-600 mb-4">El evento solicitado no existe o ha sido eliminado.</p>
+          <Link 
+            href="/admin/events"
+            className="inline-flex items-center px-4 py-2 bg-ccb-blue text-white rounded-lg hover:bg-ccb-blue/90 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver a eventos
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -150,17 +247,27 @@ export default function CreateEventPage() {
         <div>
           <div className="flex items-center space-x-3 mb-2">
             <Link
-              href="/admin/events"
+              href={`/admin/events/${params.id}`}
               className="p-2 text-gray-600 hover:text-ccb-blue hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft size={20} />
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">Crear Nuevo Evento</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Editar Evento</h1>
           </div>
           <p className="text-gray-600">
-            Completa los detalles para crear un nuevo evento
+            Modifica los detalles del evento "{event.title}"
           </p>
         </div>
+        
+        {isDirty && (
+          <div className="mt-4 sm:mt-0">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2">
+              <p className="text-sm text-yellow-800">
+                ⚠️ Tienes cambios sin guardar
+              </p>
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Form */}
@@ -326,14 +433,17 @@ export default function CreateEventPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Precio (RD$)
                   </label>
-                  <input
-                    {...register('price', { valueAsNumber: true })}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
-                    placeholder="0.00"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                    <input
+                      {...register('price', { valueAsNumber: true })}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
+                      placeholder="0.00"
+                    />
+                  </div>
                   {errors.price && (
                     <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>
                   )}
@@ -365,114 +475,149 @@ export default function CreateEventPage() {
                   )}
                 </div>
 
-                {/* Tags */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Etiquetas
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {watchedTags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-ccb-blue/10 text-ccb-blue"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(tag)}
-                          className="ml-2 hover:text-red-500"
-                        >
-                          <X size={14} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={newTag}
-                      onChange={(e) => setNewTag(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
-                      placeholder="Agregar etiqueta"
-                    />
-                    <button
-                      type="button"
-                      onClick={addTag}
-                      className="px-4 py-2 bg-ccb-blue text-white rounded-lg hover:bg-ccb-blue/90 transition-colors"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                </div>
-
                 {/* Requirements */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Requisitos
                   </label>
-                  <textarea
-                    {...register('requirements')}
-                    rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
-                    placeholder="Edad mínima, materiales necesarios, etc."
-                  />
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-3 text-gray-400" size={20} />
+                    <textarea
+                      {...register('requirements')}
+                      rows={3}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
+                      placeholder="Ej: Edad mínima 18 años, llevar identificación..."
+                    />
+                  </div>
+                  {errors.requirements && (
+                    <p className="mt-1 text-sm text-red-600">{errors.requirements.message}</p>
+                  )}
                 </div>
 
                 {/* Contact Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email de Contacto
-                    </label>
-                    <input
-                      {...register('contactEmail')}
-                      type="email"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
-                      placeholder="contacto@banreservas.com.do"
-                    />
-                    {errors.contactEmail && (
-                      <p className="mt-1 text-sm text-red-600">{errors.contactEmail.message}</p>
-                    )}
-                  </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Información de Contacto</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Contact Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email de Contacto
+                      </label>
+                      <input
+                        {...register('contactEmail')}
+                        type="email"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
+                        placeholder="contacto@banreservas.com.do"
+                      />
+                      {errors.contactEmail && (
+                        <p className="mt-1 text-sm text-red-600">{errors.contactEmail.message}</p>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Teléfono de Contacto
-                    </label>
-                    <input
-                      {...register('contactPhone')}
-                      type="tel"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
-                      placeholder="(809) 123-4567"
-                    />
+                    {/* Contact Phone */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Teléfono de Contacto
+                      </label>
+                      <input
+                        {...register('contactPhone')}
+                        type="tel"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
+                        placeholder="(809) 960-2121"
+                      />
+                      {errors.contactPhone && (
+                        <p className="mt-1 text-sm text-red-600">{errors.contactPhone.message}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Etiquetas
+                  </label>
+                  
+                  <div className="space-y-3">
+                    {/* Tag input */}
+                    <div className="flex space-x-2">
+                      <div className="relative flex-1">
+                        <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                          type="text"
+                          value={newTag}
+                          onChange={(e) => setNewTag(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ccb-blue"
+                          placeholder="Agregar etiqueta..."
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addTag}
+                        className="px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        <Plus size={20} />
+                      </button>
+                    </div>
+
+                    {/* Tags display */}
+                    {watchedTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {watchedTags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => removeTag(tag)}
+                              className="ml-2 hover:text-blue-600"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Submit Buttons */}
-            <div className="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
-              <Link
-                href="/admin/events"
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-center"
-              >
-                Cancelar
-              </Link>
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-6 border-t border-gray-200">
+              <div className="flex space-x-3 mb-4 sm:mb-0">
+                <Link
+                  href={`/admin/events/${params.id}`}
+                  className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </Link>
+                <Link
+                  href="/admin/events"
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Volver a lista
+                </Link>
+              </div>
+              
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-3 bg-ccb-blue text-white rounded-lg hover:bg-ccb-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                className="px-6 py-3 bg-ccb-blue text-white rounded-lg hover:bg-ccb-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
               >
                 {isSubmitting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Creando...</span>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Guardando...</span>
                   </>
                 ) : (
                   <>
-                    <Save size={16} />
-                    <span>Crear Evento</span>
+                    <Save className="w-4 h-4" />
+                    <span>Guardar Cambios</span>
                   </>
                 )}
               </button>

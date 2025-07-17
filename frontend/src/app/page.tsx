@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { MainNav } from "@/components/layout/main-nav";
 import { HeroSection } from "@/components/features/hero-section";
 import { EventsGrid } from "@/components/features/events-grid";

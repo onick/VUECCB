@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Event, EventCategory, EventStatus } from '@/types';
+import { apiService } from '@/services/api';
+import { SPANISH_CATEGORIES, formatEventDate, calculateOccupancy, getOccupancyColor } from '@/utils/eventUtils';
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -26,16 +28,7 @@ export default function EventsPage() {
   const [selectedStatus, setSelectedStatus] = useState<EventStatus | 'all'>('all');
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
 
-  const categories: EventCategory[] = [
-    "Cinema Dominicano",
-    "Cine Clásico", 
-    "Cine General",
-    "Talleres",
-    "Conciertos",
-    "Charlas/Conferencias",
-    "Exposiciones de Arte",
-    "Experiencias 3D Inmersivas"
-  ];
+  const categories: EventCategory[] = SPANISH_CATEGORIES;
 
   const statuses: EventStatus[] = ["activo", "cancelado", "completado", "borrador"];
 
@@ -47,52 +40,18 @@ export default function EventsPage() {
     try {
       setLoading(true);
       
-      const mockEvents: Event[] = [
-        {
-          id: '1',
-          title: 'Concierto de Jazz Latino',
-          description: 'Una noche mágica con los mejores exponentes del jazz dominicano y latinoamericano.',
-          category: 'Conciertos',
-          date: '2025-01-20',
-          time: '20:00',
-          capacity: 200,
-          location: 'Auditorio Principal',
-          image_url: '/images/jazz-concert.jpg',
-          available_spots: 15,
-          created_at: '2025-01-10T10:00:00Z'
-        },
-        {
-          id: '2',
-          title: 'Exposición: Arte Moderno Dominicano',
-          description: 'Muestra colectiva de artistas contemporáneos dominicanos con obras de pintura, escultura y arte digital.',
-          category: 'Exposiciones de Arte',
-          date: '2025-01-18',
-          time: '10:00',
-          capacity: 150,
-          location: 'Galería Principal',
-          image_url: '/images/art-exhibition.jpg',
-          available_spots: 35,
-          created_at: '2025-01-08T14:30:00Z'
-        },
-        {
-          id: '3',
-          title: 'Taller de Fotografía Digital',
-          description: 'Aprende las técnicas básicas y avanzadas de fotografía digital con equipos profesionales.',
-          category: 'Talleres',
-          date: '2025-01-16',
-          time: '09:00',
-          capacity: 25,
-          location: 'Aula 103',
-          image_url: '/images/photography-workshop.jpg',
-          available_spots: 7,
-          created_at: '2025-01-05T16:20:00Z'
-        }
-      ];
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setEvents(mockEvents);
+      // Call real API instead of mock data
+      const eventsData = await apiService.getEvents();
+      console.log('Eventos cargados desde API:', eventsData);
+      
+      setEvents(eventsData);
     } catch (error) {
       console.error('Error loading events:', error);
+      // Show user-friendly error
+      alert('Error al cargar eventos. Verifica la conexión con el servidor.');
+      
+      // Fallback to empty array instead of mock data
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -113,6 +72,21 @@ export default function EventsPage() {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
+  const handleDeleteEvent = async (eventId: string, eventTitle: string) => {
+    if (confirm(`¿Estás seguro de que quieres eliminar el evento "${eventTitle}"?`)) {
+      try {
+        await apiService.deleteEvent(eventId);
+        alert('Evento eliminado exitosamente');
+        // Reload events
+        loadEvents();
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+        alert(`Error al eliminar evento: ${errorMessage}`);
+      }
+    }
+  };
+
   const handleSelectEvent = (eventId: string) => {
     setSelectedEvents(prev => 
       prev.includes(eventId) 
@@ -130,23 +104,11 @@ export default function EventsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-DO', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return formatEventDate(dateString);
   };
 
   const getOccupancyPercentage = (event: Event) => {
-    const occupied = event.capacity - (event.available_spots || 0);
-    return ((occupied / event.capacity) * 100).toFixed(1);
-  };
-
-  const getOccupancyColor = (percentage: number) => {
-    if (percentage >= 90) return 'text-red-600 bg-red-50';
-    if (percentage >= 70) return 'text-orange-600 bg-orange-50';
-    return 'text-green-600 bg-green-50';
+    return calculateOccupancy(event.capacity, event.available_spots || 0).toFixed(1);
   };
 
   const EventCard = ({ event }: { event: Event }) => {
@@ -235,7 +197,10 @@ export default function EventsPage() {
               <Edit className="w-4 h-4 inline mr-1" />
               Editar
             </Link>
-            <button className="flex-1 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+            <button 
+              onClick={() => handleDeleteEvent(event.id, event.title)}
+              className="flex-1 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+            >
               <Trash2 className="w-4 h-4 inline mr-1" />
               Eliminar
             </button>

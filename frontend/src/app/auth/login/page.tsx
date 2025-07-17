@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuthStore } from "@/stores/auth";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 
@@ -23,8 +23,9 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login, isLoading } = useAuthStore();
+  const { login } = useAuth();
   const { toast } = useToast();
 
   const {
@@ -37,18 +38,28 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(data);
+      setIsLoading(true);
+      const result = await login(data.email, data.password);
+      
       toast({
         title: "Bienvenido",
         description: "Has iniciado sesión correctamente",
       });
-      router.push("/");
+      
+      // Verificar si el usuario es admin y redirigir apropiadamente
+      if (result?.user?.is_admin || result?.user?.role === 'admin') {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.response?.data?.detail || "Error al iniciar sesión",
+        description: error.message || "Error al iniciar sesión",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 

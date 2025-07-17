@@ -47,6 +47,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               isAuthenticated: true,
               isLoading: false,
             });
+            
+            return response; // Retornar la respuesta para poder verificar el rol
           }
         } catch (error) {
           set({ isLoading: false });

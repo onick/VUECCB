@@ -823,6 +823,45 @@ async def get_events():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/events/{event_id}")
+@performance_tracker.track_endpoint_performance("get_event_by_id")
+async def get_event_by_id(event_id: str):
+    try:
+        # Find the event by ID
+        event = db.events.find_one({"id": event_id})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Remove MongoDB ObjectId
+        if "_id" in event:
+            del event["_id"]
+            
+        # Calculate available spots
+        reservations = db.reservations.count_documents({
+            "event_id": event["id"],
+            "status": {"$in": ["confirmed", "checked_in"]}
+        })
+        available_spots = event["capacity"] - reservations
+        
+        return Event(
+            id=event["id"],
+            title=event["title"],
+            description=event["description"],
+            category=event["category"],
+            date=event["date"],
+            time=event["time"],
+            capacity=event["capacity"],
+            location=event["location"],
+            image_url=event.get("image_url"),
+            available_spots=available_spots,
+            created_at=event["created_at"]
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/events")
 async def create_event(event: EventCreate, user_id: str = Depends(verify_token)):
     try:
@@ -866,6 +905,65 @@ async def create_event(event: EventCreate, user_id: str = Depends(verify_token))
             created_at=event_doc["created_at"]
         )
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/events/{event_id}")
+@performance_tracker.track_endpoint_performance("update_event")
+async def update_event(event_id: str, event_update: EventCreate, user_id: str = Depends(verify_token)):
+    try:
+        # Check if user is admin
+        user_doc = db.users.find_one({"id": user_id})
+        if not user_doc or not user_doc.get("is_admin"):
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Check if event exists
+        existing_event = db.events.find_one({"id": event_id})
+        if not existing_event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Validate category
+        if event_update.category not in EVENT_CATEGORIES:
+            raise HTTPException(status_code=400, detail="Invalid event category")
+        
+        # Update event document
+        update_doc = {
+            "title": event_update.title,
+            "description": event_update.description,
+            "category": event_update.category,
+            "date": event_update.date,
+            "time": event_update.time,
+            "capacity": event_update.capacity,
+            "location": event_update.location,
+            "image_url": event_update.image_url,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        db.events.update_one({"id": event_id}, {"$set": update_doc})
+        
+        # Calculate available spots for response
+        reservations = db.reservations.count_documents({
+            "event_id": event_id,
+            "status": {"$in": ["confirmed", "checked_in"]}
+        })
+        available_spots = event_update.capacity - reservations
+        
+        return Event(
+            id=event_id,
+            title=event_update.title,
+            description=event_update.description,
+            category=event_update.category,
+            date=event_update.date,
+            time=event_update.time,
+            capacity=event_update.capacity,
+            location=event_update.location,
+            image_url=event_update.image_url,
+            available_spots=available_spots,
+            created_at=existing_event["created_at"]
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

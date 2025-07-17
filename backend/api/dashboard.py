@@ -439,3 +439,236 @@ async def get_activity_feed(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve activity feed"
         )
+
+
+
+@router.get("/dashboard/charts/monthly-attendance")
+async def get_monthly_attendance_chart(admin_user: dict = Depends(get_admin_user)):
+    """Get monthly attendance data for charts"""
+    try:
+        # Get last 12 months of data
+        now = datetime.utcnow()
+        months_data = []
+        
+        for i in range(11, -1, -1):
+            month_date = now - timedelta(days=30 * i)
+            month_str = month_date.strftime("%Y-%m")
+            month_name = month_date.strftime("%b %Y")
+            
+            # Count check-ins for this month
+            checkins_count = database.checkins.count_documents({
+                "timestamp": {"$regex": f"^{month_str}"}
+            })
+            
+            # Count reservations for this month
+            reservations_count = database.reservations.count_documents({
+                "created_at": {"$regex": f"^{month_str}"},
+                "status": {"$ne": "cancelled"}
+            })
+            
+            months_data.append({
+                "month": month_name,
+                "checkins": checkins_count,
+                "reservations": reservations_count,
+                "attendance_rate": round((checkins_count / reservations_count * 100) if reservations_count > 0 else 0, 1)
+            })
+        
+        return SuccessResponse(
+            message="Monthly attendance chart data retrieved successfully",
+            data={"monthly_data": months_data}
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve monthly attendance data"
+        )
+
+
+@router.get("/dashboard/charts/categories-distribution")
+async def get_categories_distribution_chart(admin_user: dict = Depends(get_admin_user)):
+    """Get event categories distribution for pie chart"""
+    try:
+        # Get categories distribution from events and their reservations
+        categories_pipeline = [
+            {
+                "$lookup": {
+                    "from": "reservations",
+                    "localField": "id",
+                    "foreignField": "event_id",
+                    "as": "reservations"
+                }
+            },
+            {
+                "$project": {
+                    "category": 1,
+                    "reservation_count": {"$size": "$reservations"},
+                    "capacity": 1
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$category",
+                    "events_count": {"$sum": 1},
+                    "total_reservations": {"$sum": "$reservation_count"},
+                    "total_capacity": {"$sum": "$capacity"}
+                }
+            },
+            {
+                "$project": {
+                    "category": "$_id",
+                    "events_count": 1,
+                    "total_reservations": 1,
+                    "total_capacity": 1,
+                    "occupancy_rate": {
+                        "$cond": {
+                            "if": {"$gt": ["$total_capacity", 0]},
+                            "then": {"$multiply": [{"$divide": ["$total_reservations", "$total_capacity"]}, 100]},
+                            "else": 0
+                        }
+                    }
+                }
+            },
+            {"$sort": {"total_reservations": -1}}
+        ]
+        
+        categories_data = list(database.events.aggregate(categories_pipeline))
+        
+        # Format for chart
+        chart_data = []
+        colors = [
+            "#003087",  # CCB Blue
+            "#0066CC",  # CCB Light Blue
+            "#FFD700",  # CCB Gold
+            "#FF6B6B",  # Red
+            "#4ECDC4",  # Teal
+            "#45B7D1",  # Sky Blue
+            "#96CEB4",  # Green
+            "#FFEAA7"   # Yellow
+        ]
+        
+        for i, category in enumerate(categories_data):
+            chart_data.append({
+                "name": category["category"],
+                "value": category["total_reservations"],
+                "events_count": category["events_count"],
+                "occupancy_rate": round(category["occupancy_rate"], 1),
+                "color": colors[i % len(colors)]
+            })
+        
+        return SuccessResponse(
+            message="Categories distribution chart data retrieved successfully",
+            data={"categories_data": chart_data}
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve categories distribution data"
+        )
+
+
+@router.get("/dashboard/charts/weekly-trends")
+async def get_weekly_trends_chart(admin_user: dict = Depends(get_admin_user)):
+    """Get weekly trends data for line chart"""
+    try:
+        # Get last 7 days of data
+        trends_data = []
+        
+        for i in range(6, -1, -1):
+            date = datetime.utcnow() - timedelta(days=i)
+            date_str = date.strftime("%Y-%m-%d")
+            day_name = date.strftime("%a")
+            
+            # Count various activities for each day
+            new_users = database.users.count_documents({
+                "created_at": {"$regex": f"^{date_str}"},
+                "deleted": {"$ne": True}
+            })
+            
+            new_reservations = database.reservations.count_documents({
+                "created_at": {"$regex": f"^{date_str}"},
+                "status": {"$ne": "cancelled"}
+            })
+            
+            checkins = database.checkins.count_documents({
+                "timestamp": {"$regex": f"^{date_str}"}
+            })
+            
+            trends_data.append({
+                "day": day_name,
+                "date": date_str,
+                "new_users": new_users,
+                "new_reservations": new_reservations,
+                "checkins": checkins
+            })
+        
+        return SuccessResponse(
+            message="Weekly trends chart data retrieved successfully",
+            data={"weekly_data": trends_data}
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve weekly trends data"
+        )
+
+
+@router.get("/dashboard/charts/occupancy-rates")
+async def get_occupancy_rates_chart(admin_user: dict = Depends(get_admin_user)):
+    """Get occupancy rates by event for bar chart"""
+    try:
+        # Get top 10 events by occupancy rate
+        occupancy_pipeline = [
+            {
+                "$lookup": {
+                    "from": "reservations",
+                    "localField": "id",
+                    "foreignField": "event_id",
+                    "as": "reservations"
+                }
+            },
+            {
+                "$project": {
+                    "title": 1,
+                    "category": 1,
+                    "capacity": 1,
+                    "date": 1,
+                    "reservation_count": {"$size": "$reservations"},
+                    "occupancy_rate": {
+                        "$cond": {
+                            "if": {"$gt": ["$capacity", 0]},
+                            "then": {"$multiply": [{"$divide": [{"$size": "$reservations"}, "$capacity"]}, 100]},
+                            "else": 0
+                        }
+                    }
+                }
+            },
+            {"$sort": {"occupancy_rate": -1}},
+            {"$limit": 10}
+        ]
+        
+        occupancy_data = list(database.events.aggregate(occupancy_pipeline))
+        
+        # Format for chart
+        chart_data = []
+        for event in occupancy_data:
+            chart_data.append({
+                "name": event["title"][:20] + "..." if len(event["title"]) > 20 else event["title"],
+                "occupancy_rate": round(event["occupancy_rate"], 1),
+                "reservations": event["reservation_count"],
+                "capacity": event["capacity"],
+                "category": event["category"]
+            })
+        
+        return SuccessResponse(
+            message="Occupancy rates chart data retrieved successfully",
+            data={"occupancy_data": chart_data}
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve occupancy rates data"
+        )
