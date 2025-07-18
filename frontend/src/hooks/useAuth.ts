@@ -18,27 +18,21 @@ export function useAuth() {
         return;
       }
 
-      // Verificar si el token es válido haciendo una petición a los usuarios
-      const response = await fetch('http://localhost:8004/api/admin/users?skip=0&limit=1', {
+      // Verificar si el token es válido y obtener datos del usuario
+      const response = await fetch('http://localhost:8004/api/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
       if (response.ok) {
-        // El token es válido, pero necesitamos obtener los datos del usuario actual
-        // Por ahora, simplemente marcar como autenticado
+        // El token es válido, obtener datos del usuario
+        const userData = await response.json();
+        setUser(userData);
         setIsAuthenticated(true);
         
-        // Intentar obtener datos del usuario del localStorage
-        const userData = localStorage.getItem('user_data');
-        if (userData) {
-          try {
-            setUser(JSON.parse(userData));
-          } catch (e) {
-            console.error('Error parsing user data:', e);
-          }
-        }
+        // Actualizar datos del usuario en localStorage
+        localStorage.setItem('user_data', JSON.stringify(userData));
       } else {
         // Token inválido, remover del localStorage
         localStorage.removeItem('auth_token');

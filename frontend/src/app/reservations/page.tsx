@@ -98,18 +98,61 @@ export default function ReservationsPage() {
   const loadReservations = async () => {
     try {
       setLoading(true);
+      console.log('🎯 ReservationsPage: Starting to load reservations...');
+      
       const response = await apiService.getReservations();
+      console.log('✅ ReservationsPage: Raw response:', response);
       
-      // Transform the response to match our interface
-      const transformedReservations = response.items || response.reservations || [];
-      const normalizedReservations = transformedReservations.map((reservation: any) => ({
-        ...reservation,
-        event_category: categoryToSpanish(reservation.event_category || reservation.category || 'General')
-      }));
+      // The API returns an array directly with objects like: 
+      // [{"reservation": {...}, "event": {...}}]
+      let transformedReservations: any[] = [];
       
-      setReservations(normalizedReservations);
+      if (Array.isArray(response)) {
+        // Handle the actual API response format
+        transformedReservations = response.map((item: any) => {
+          const reservation = item.reservation || item;
+          const event = item.event || {};
+          
+          return {
+            id: reservation.id,
+            event_id: reservation.event_id,
+            event_title: event.title || 'Evento sin título',
+            event_date: event.date || 'Fecha no disponible',
+            event_time: event.time || 'Hora no disponible',
+            event_location: event.location || 'Ubicación no disponible',
+            event_category: categoryToSpanish(event.category || 'General'),
+            user_id: reservation.user_id,
+            user_name: reservation.user_name || 'Usuario',
+            user_email: reservation.user_email || 'Email no disponible',
+            status: reservation.status || 'confirmed',
+            checkin_code: reservation.checkin_code || 'N/A',
+            qr_code: reservation.qr_code,
+            created_at: reservation.created_at,
+            checked_in_at: reservation.checked_in_at,
+            notes: reservation.notes
+          };
+        });
+      } else {
+        // Fallback for other response formats
+        transformedReservations = response.items || response.reservations || [];
+      }
+      
+      console.log('✅ ReservationsPage: Transformed reservations:', transformedReservations);
+      setReservations(transformedReservations);
+      
     } catch (error) {
-      console.error('Error loading reservations:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error loading reservations';
+      console.error('🚨 ReservationsPage: Error loading reservations:', error);
+      
+      // Log detailed error
+      if (window.logError) {
+        window.logError(errorMsg, 'ReservationsPage - loadReservations()', {
+          error: error instanceof Error ? error.stack : error,
+          timestamp: new Date().toISOString(),
+          location: 'ReservationsPage.loadReservations'
+        });
+      }
+      
       // If we get 401, redirect to login
       if (error.response?.status === 401) {
         router.push('/auth/login?redirect=' + encodeURIComponent('/reservations'));

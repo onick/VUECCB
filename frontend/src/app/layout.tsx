@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { ErrorLogger } from "@/components/debug/ErrorLogger";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -55,6 +56,7 @@ export default function RootLayout({
               {children}
             </div>
             <Toaster />
+            <ErrorLogger />
           </AuthProvider>
         </ThemeProvider>
       </body>

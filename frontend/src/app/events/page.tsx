@@ -32,15 +32,33 @@ export default function EventsPage() {
   const loadEvents = async () => {
     try {
       setLoading(true);
+      console.log('🎯 EventsPage: Starting to load events...');
+      
       const eventsData = await apiService.getEvents();
+      console.log('✅ EventsPage: Received events data:', eventsData);
+      
       // Normalize categories to Spanish
       const normalizedEvents = eventsData.map(event => ({
         ...event,
         category: categoryToSpanish(event.category)
       }));
+      
+      console.log('✅ EventsPage: Normalized events:', normalizedEvents);
       setEvents(normalizedEvents as Event[]);
+      
     } catch (error) {
-      console.error('Error loading events:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error loading events';
+      console.error('🚨 EventsPage: Error loading events:', error);
+      
+      // Log error to our error logger
+      if (window.logError) {
+        window.logError(errorMsg, 'EventsPage - loadEvents()', {
+          error: error instanceof Error ? error.stack : error,
+          timestamp: new Date().toISOString(),
+          location: 'EventsPage.loadEvents'
+        });
+      }
+      
       setEvents([]);
     } finally {
       setLoading(false);
