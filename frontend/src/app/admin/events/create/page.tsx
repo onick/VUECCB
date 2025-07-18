@@ -19,7 +19,7 @@ import {
   X
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiService, EventCreate } from '@/services/api';
 import { SPANISH_CATEGORIES } from '@/utils/eventUtils';
 
@@ -49,6 +49,7 @@ export default function CreateEventPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newTag, setNewTag] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const {
     register,
@@ -60,11 +61,11 @@ export default function CreateEventPage() {
   } = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      category: '',
-      date: '',
-      time: '',
+      title: searchParams.get('title') || '',
+      description: searchParams.get('description') || '',
+      category: searchParams.get('category') || '',
+      date: searchParams.get('date') || '',
+      time: searchParams.get('time') || '',
       location: 'Centro Cultural Banreservas',
       capacity: 50,
       price: 0,

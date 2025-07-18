@@ -114,28 +114,73 @@ class ApiService {
     }
 
     try {
+      console.log(`🔄 API Request: ${options.method || 'GET'} ${url}`);
+      console.log('📤 Request Headers:', defaultHeaders);
+      if (options.body) {
+        console.log('📤 Request Body:', options.body);
+      }
+
       const response = await fetch(url, {
         ...options,
         headers: defaultHeaders
       });
 
+      console.log(`📥 Response Status: ${response.status} ${response.statusText}`);
+      console.log('📥 Response Headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         if (response.status === 401) {
           // Handle unauthorized - redirect to login
           localStorage.removeItem('auth_token');
+          const errorMsg = `401 Unauthorized - Redirecting to login`;
+          console.error('🚨 Auth Error:', errorMsg);
+          if (window.logError) {
+            window.logError(errorMsg, `API Request: ${endpoint}`, {
+              status: response.status,
+              url,
+              headers: defaultHeaders
+            });
+          }
           window.location.href = '/auth/login';
           throw new Error('Unauthorized');
         }
         
         const errorData = await response.json().catch(() => ({ message: 'Network error' }));
-        console.error('API Error Details:', errorData);
-        throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
+        const errorMsg = errorData.detail || errorData.message || `HTTP ${response.status}`;
+        console.error('🚨 API Error Details:', errorData);
+        
+        // Log detailed error information
+        if (window.logError) {
+          window.logError(errorMsg, `API Request: ${endpoint}`, {
+            status: response.status,
+            statusText: response.statusText,
+            url,
+            headers: defaultHeaders,
+            responseData: errorData,
+            requestBody: options.body
+          });
+        }
+        
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
+      console.log('✅ API Response Data:', data);
       return data;
     } catch (error) {
-      console.error(`API Error (${endpoint}):`, error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown API error';
+      console.error(`🚨 API Error (${endpoint}):`, error);
+      
+      // Log error with full context
+      if (window.logError) {
+        window.logError(errorMsg, `API Request: ${endpoint}`, {
+          url,
+          headers: defaultHeaders,
+          requestBody: options.body,
+          error: error instanceof Error ? error.stack : error
+        });
+      }
+      
       throw error;
     }
   }
@@ -143,17 +188,46 @@ class ApiService {
   // Events API
   async getEvents(): Promise<Event[]> {
     try {
+      console.log('🎯 Starting getEvents() call...');
       const response = await this.request<Event[]>('/api/events');
+      console.log('✅ getEvents() - Raw response:', response);
+      
       // Handle both direct array response and wrapped response
       const events = Array.isArray(response) ? response : response.data || [];
+      console.log('✅ getEvents() - Parsed events:', events);
+      
+      if (!Array.isArray(events)) {
+        const errorMsg = 'Events response is not an array';
+        console.error('🚨 Events data error:', errorMsg, events);
+        if (window.logError) {
+          window.logError(errorMsg, 'getEvents() - Data parsing', {
+            responseType: typeof response,
+            response,
+            events
+          });
+        }
+        throw new Error(errorMsg);
+      }
       
       // Convert English categories to Spanish for display
-      return events.map(event => ({
+      const processedEvents = events.map(event => ({
         ...event,
         category: categoryToSpanish(event.category)
       }));
+      
+      console.log('✅ getEvents() - Final processed events:', processedEvents);
+      return processedEvents;
     } catch (error) {
-      console.error('Failed to fetch events:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error fetching events';
+      console.error('🚨 Failed to fetch events:', error);
+      
+      if (window.logError) {
+        window.logError(errorMsg, 'getEvents() - Main method', {
+          error: error instanceof Error ? error.stack : error,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       throw error;
     }
   }
@@ -237,14 +311,14 @@ class ApiService {
 
   // Dashboard API
   async getDashboardStats(): Promise<any> {
-    const response = await this.request('/api/dashboard/stats');
+    const response = await this.request('/api/admin/stats');
     return response.data || response;
   }
 
   // Categories API
   async getEventCategories(): Promise<string[]> {
-    const response = await this.request<{ categories: string[] }>('/api/events/categories/list');
-    return response.data?.categories || [];
+    const response = await this.request<string[]>('/api/categories');
+    return Array.isArray(response) ? response : response.data || [];
   }
 
   // Users API
@@ -316,46 +390,45 @@ class ApiService {
     return response.data || response;
   }
 
-  // Dashboard Analytics Methods
-  async getDashboardStats(): Promise<any> {
-    const response = await this.request('/api/dashboard/stats');
-    return response.data;
-  }
+  // Dashboard Analytics Methods - Duplicate method removed (using /api/admin/stats above)
+  
+  // Note: These methods are commented out because the endpoints don't exist in the current backend
+  // Uncomment and implement backend endpoints if needed
+  
+  // async getQuickStats(): Promise<any> {
+  //   const response = await this.request('/api/dashboard/quick-stats');
+  //   return response.data;
+  // }
 
-  async getQuickStats(): Promise<any> {
-    const response = await this.request('/api/dashboard/quick-stats');
-    return response.data;
-  }
+  // async getSystemStatus(): Promise<any> {
+  //   const response = await this.request('/api/dashboard/system-status');
+  //   return response.data;
+  // }
 
-  async getSystemStatus(): Promise<any> {
-    const response = await this.request('/api/dashboard/system-status');
-    return response.data;
-  }
+  // async getActivityFeed(limit: number = 20): Promise<any> {
+  //   const response = await this.request(`/api/dashboard/activity-feed?limit=${limit}`);
+  //   return response.data;
+  // }
 
-  async getActivityFeed(limit: number = 20): Promise<any> {
-    const response = await this.request(`/api/dashboard/activity-feed?limit=${limit}`);
-    return response.data;
-  }
+  // async getMonthlyAttendanceChart(): Promise<any> {
+  //   const response = await this.request('/api/dashboard/charts/monthly-attendance');
+  //   return response.data;
+  // }
 
-  async getMonthlyAttendanceChart(): Promise<any> {
-    const response = await this.request('/api/dashboard/charts/monthly-attendance');
-    return response.data;
-  }
+  // async getCategoriesDistributionChart(): Promise<any> {
+  //   const response = await this.request('/api/dashboard/charts/categories-distribution');
+  //   return response.data;
+  // }
 
-  async getCategoriesDistributionChart(): Promise<any> {
-    const response = await this.request('/api/dashboard/charts/categories-distribution');
-    return response.data;
-  }
+  // async getWeeklyTrendsChart(): Promise<any> {
+  //   const response = await this.request('/api/dashboard/charts/weekly-trends');
+  //   return response.data;
+  // }
 
-  async getWeeklyTrendsChart(): Promise<any> {
-    const response = await this.request('/api/dashboard/charts/weekly-trends');
-    return response.data;
-  }
-
-  async getOccupancyRatesChart(): Promise<any> {
-    const response = await this.request('/api/dashboard/charts/occupancy-rates');
-    return response.data;
-  }
+  // async getOccupancyRatesChart(): Promise<any> {
+  //   const response = await this.request('/api/dashboard/charts/occupancy-rates');
+  //   return response.data;
+  // }
 
   // Check-in Methods - Using actual server.py endpoints
   async checkInUser(method: string, value: string, eventId?: string): Promise<any> {

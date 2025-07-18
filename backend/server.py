@@ -785,6 +785,35 @@ async def login(user: UserLogin):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/me")
+async def get_current_user(user_id: str = Depends(verify_token)):
+    """Get current user profile"""
+    try:
+        user = db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Remove MongoDB ObjectId and password
+        if "_id" in user:
+            del user["_id"]
+        if "password" in user:
+            del user["password"]
+            
+        return User(
+            id=user["id"],
+            name=user["name"],
+            email=user["email"],
+            phone=user["phone"],
+            age=user["age"],
+            location=user["location"],
+            is_admin=user.get("is_admin", False)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/events")
 @performance_tracker.track_endpoint_performance("get_events")
 async def get_events():
@@ -1066,6 +1095,8 @@ async def create_reservation(reservation: ReservationCreate, user_id: str = Depe
             created_at=reservation_doc["created_at"]
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1328,7 +1359,33 @@ async def cancel_reservation(reservation_id: str, user_id: str = Depends(verify_
 
 @app.get("/api/categories")
 async def get_categories():
-    return EVENT_CATEGORIES
+    # Return Spanish categories that frontend expects
+    spanish_categories = [
+        "Cinema Dominicano",
+        "Cine Clásico", 
+        "Cine General",
+        "Talleres",
+        "Conciertos",
+        "Charlas/Conferencias",
+        "Exposiciones de Arte",
+        "Experiencias 3D Inmersivas"
+    ]
+    return spanish_categories
+
+@app.get("/api/events/categories/list")
+async def get_event_categories_list():
+    # Alternative endpoint for categories
+    spanish_categories = [
+        "Cinema Dominicano",
+        "Cine Clásico", 
+        "Cine General",
+        "Talleres",
+        "Conciertos",
+        "Charlas/Conferencias",
+        "Exposiciones de Arte",
+        "Experiencias 3D Inmersivas"
+    ]
+    return {"categories": spanish_categories}
 
 @app.post("/api/create-admin")
 async def create_admin():

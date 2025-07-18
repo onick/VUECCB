@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { AdminStats, Activity, Event } from '@/types';
+import { apiService } from '@/services/api';
 
 interface DashboardMetrics {
   totalEvents: number;
@@ -71,29 +72,59 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      console.log('🎯 AdminDashboard: Loading dashboard data...');
       
-      // En un escenario real, aquí harías las llamadas a la API
-      // Por ahora, usaremos datos mock para demostrar la funcionalidad
+      // Hacer llamadas reales a la API
+      const [adminStats, events] = await Promise.all([
+        apiService.getDashboardStats(),
+        apiService.getEvents()
+      ]);
       
-      // Simular llamada a /api/admin/stats
-      const mockMetrics: DashboardMetrics = {
-        totalEvents: 42,
-        totalUsers: 1248,
-        totalReservations: 856,
-        todayCheckIns: 67,
-        activeEvents: 8,
-        upcomingEvents: 15,
-        completedEvents: 19,
-        occupancyRate: 73.5
+      console.log('✅ AdminDashboard: Admin stats:', adminStats);
+      console.log('✅ AdminDashboard: Events:', events);
+      
+      // Calcular métricas del dashboard
+      const activeEvents = events.filter(event => {
+        const eventDate = new Date(event.date);
+        const today = new Date();
+        return eventDate >= today;
+      }).length;
+      
+      const upcomingEvents = events.filter(event => {
+        const eventDate = new Date(event.date);
+        const today = new Date();
+        const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        return eventDate > today && eventDate <= nextWeek;
+      }).length;
+      
+      const completedEvents = events.filter(event => {
+        const eventDate = new Date(event.date);
+        const today = new Date();
+        return eventDate < today;
+      }).length;
+      
+      const metrics: DashboardMetrics = {
+        totalEvents: adminStats.total_events || events.length,
+        totalUsers: adminStats.total_users || 0,
+        totalReservations: adminStats.total_reservations || 0,
+        todayCheckIns: adminStats.total_checkins || 0,
+        activeEvents,
+        upcomingEvents,
+        completedEvents,
+        occupancyRate: adminStats.total_reservations > 0 ? 
+          (adminStats.total_checkins / adminStats.total_reservations * 100) : 0
       };
-
+      
+      console.log('✅ AdminDashboard: Calculated metrics:', metrics);
+      
+      // Actividad reciente mock (por ahora)
       const mockActivity: Activity[] = [
         {
           id: '1',
           type: 'event_created',
-          description: 'Nuevo evento "Concierto de Jazz" creado',
-          timestamp: '2025-01-15T10:30:00Z',
-          user_email: 'admin@banreservas.com.do'
+          description: 'Dashboard cargado con datos reales',
+          timestamp: new Date().toISOString(),
+          user_email: 'admin@culturalcenter.com'
         },
         {
           id: '2',
@@ -118,57 +149,55 @@ export default function AdminDashboard() {
         }
       ];
 
-      const mockTopEvents: TopEvent[] = [
-        {
-          id: '1',
-          title: 'Concierto de Jazz Latino',
-          category: 'Conciertos',
-          reservations: 185,
-          capacity: 200,
-          date: '2025-01-20',
-          status: 'proximo',
-          occupancyRate: 92.5
-        },
-        {
-          id: '2',
-          title: 'Exposición de Arte Moderno',
-          category: 'Exposiciones de Arte',
-          reservations: 145,
-          capacity: 180,
-          date: '2025-01-18',
-          status: 'activo',
-          occupancyRate: 80.6
-        },
-        {
-          id: '3',
-          title: 'Taller de Fotografía Digital',
-          category: 'Talleres',
-          reservations: 28,
-          capacity: 35,
-          date: '2025-01-16',
-          status: 'activo',
-          occupancyRate: 80.0
-        },
-        {
-          id: '4',
-          title: 'Cine Dominicano Contemporáneo',
-          category: 'Cinema Dominicano',
-          reservations: 95,
-          capacity: 120,
-          date: '2025-01-22',
-          status: 'proximo',
-          occupancyRate: 79.2
-        }
-      ];
+      // Generar top events basados en los eventos reales
+      const topEvents: TopEvent[] = events.slice(0, 4).map(event => {
+        const eventDate = new Date(event.date);
+        const today = new Date();
+        const reservations = Math.floor(Math.random() * event.capacity * 0.8) + 5; // Simulado
+        
+        return {
+          id: event.id,
+          title: event.title,
+          category: event.category,
+          reservations,
+          capacity: event.capacity,
+          date: event.date,
+          status: eventDate > today ? 'proximo' : 'activo',
+          occupancyRate: Math.round((reservations / event.capacity) * 100)
+        };
+      });
 
-      // Simular delay de red
-      await new Promise(resolve => setTimeout(resolve, 800));
+      console.log('✅ AdminDashboard: Top events:', topEvents);
 
-      setMetrics(mockMetrics);
+      setMetrics(metrics);
       setRecentActivity(mockActivity);
-      setTopEvents(mockTopEvents);
+      setTopEvents(topEvents);
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Error loading dashboard data';
+      console.error('🚨 AdminDashboard: Error loading dashboard data:', error);
+      
+      // Log error to our error logger
+      if (window.logError) {
+        window.logError(errorMsg, 'AdminDashboard - loadDashboardData()', {
+          error: error instanceof Error ? error.stack : error,
+          timestamp: new Date().toISOString(),
+          location: 'AdminDashboard.loadDashboardData'
+        });
+      }
+      
+      // Set fallback data on error
+      setMetrics({
+        totalEvents: 0,
+        totalUsers: 0,
+        totalReservations: 0,
+        todayCheckIns: 0,
+        activeEvents: 0,
+        upcomingEvents: 0,
+        completedEvents: 0,
+        occupancyRate: 0
+      });
+      setRecentActivity([]);
+      setTopEvents([]);
     } finally {
       setLoading(false);
     }
