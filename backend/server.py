@@ -121,12 +121,15 @@ EVENT_CATEGORIES = [
 
 # Models
 class UserCreate(BaseModel):
-    name: str
+    nombre: str
+    apellido: Optional[str] = None
     email: EmailStr
     password: str
-    phone: str
-    age: int
-    location: str
+    telefono: Optional[str] = None
+    cedula: Optional[str] = None
+    fecha_nacimiento: Optional[str] = None
+    ocupacion: Optional[str] = None
+    empresa: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -140,6 +143,18 @@ class User(BaseModel):
     age: int
     location: str
     is_admin: bool = False
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    created_at: str
+    updated_at: Optional[str] = None
+
+class UserProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    age: Optional[int] = None
+    location: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 class EventCreate(BaseModel):
     title: str
@@ -150,6 +165,11 @@ class EventCreate(BaseModel):
     capacity: int
     location: str
     image_url: Optional[str] = None
+    price: Optional[float] = 0.0
+    tags: Optional[List[str]] = []
+    requirements: Optional[str] = None
+    contact_info: Optional[str] = None
+    published: Optional[bool] = True
 
 class Event(BaseModel):
     id: str
@@ -161,6 +181,11 @@ class Event(BaseModel):
     capacity: int
     location: str
     image_url: Optional[str] = None
+    price: Optional[float] = 0.0
+    tags: Optional[List[str]] = []
+    requirements: Optional[str] = None
+    contact_info: Optional[str] = None
+    published: Optional[bool] = True
     available_spots: int
     created_at: str
 
@@ -685,33 +710,48 @@ async def register(user: UserCreate):
         user_id = str(uuid.uuid4())
         hashed_password = hash_password(user.password)
         
+        # Combine nombre and apellido for full name
+        full_name = f"{user.nombre} {user.apellido}".strip() if user.apellido else user.nombre
+        
         user_doc = {
             "id": user_id,
-            "name": user.name,
+            "name": full_name,
             "email": user.email,
             "password": hashed_password,
-            "phone": user.phone,
-            "age": user.age,
-            "location": user.location,
+            "phone": user.telefono or "",
+            "age": 0,  # Default age since not provided
+            "location": "",  # Default location since not provided
+            "cedula": user.cedula or "",
+            "fecha_nacimiento": user.fecha_nacimiento or "",
+            "ocupacion": user.ocupacion or "",
+            "empresa": user.empresa or "",
             "is_admin": False,
+            "bio": "",
+            "avatar_url": "",
             "created_at": datetime.utcnow().isoformat()
         }
         
         db.users.insert_one(user_doc)
         
         # Send welcome email
-        send_welcome_email(user.email, user.name)
+        send_welcome_email(user.email, full_name)
         
-        # Track user registration event
-        await analytics.track_user_event(
-            user_id=user_id,
-            event_type="user_registration",
-            metadata={
-                "email": user.email,
-                "age": user.age,
-                "location": user.location
-            }
-        )
+        # Track user registration event (disabled due to Redis connection issues)
+        try:
+            await analytics.track_user_event(
+                user_id=user_id,
+                event_type="user_registration",
+                metadata={
+                    "email": user.email,
+                    "nombre": user.nombre,
+                    "apellido": user.apellido or "",
+                    "telefono": user.telefono or "",
+                    "ocupacion": user.ocupacion or ""
+                }
+            )
+        except Exception as e:
+            # Log but don't fail the registration
+            logger.warning(f"Analytics tracking failed for registration: {e}")
         
         # Create access token
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -724,12 +764,16 @@ async def register(user: UserCreate):
             "token_type": "bearer",
             "user": User(
                 id=user_id,
-                name=user.name,
+                name=full_name,
                 email=user.email,
-                phone=user.phone,
-                age=user.age,
-                location=user.location,
-                is_admin=False
+                phone=user.telefono or "",
+                age=0,
+                location="",
+                is_admin=False,
+                bio="",
+                avatar_url="",
+                created_at=user_doc["created_at"],
+                updated_at=None
             )
         }
         
@@ -752,15 +796,19 @@ async def login(user: UserLogin):
         if not verify_password(user.password, user_doc["password"]):
             raise HTTPException(status_code=401, detail="Invalid credentials")
         
-        # Track user login event
-        await analytics.track_user_event(
-            user_id=user_doc["id"],
-            event_type="user_login",
-            metadata={
-                "email": user.email,
-                "login_time": datetime.utcnow().isoformat()
-            }
-        )
+        # Track user login event (disabled due to Redis connection issues)
+        try:
+            await analytics.track_user_event(
+                user_id=user_doc["id"],
+                event_type="user_login",
+                metadata={
+                    "email": user.email,
+                    "login_time": datetime.utcnow().isoformat()
+                }
+            )
+        except Exception as e:
+            # Log but don't fail the login
+            logger.warning(f"Analytics tracking failed for login: {e}")
         
         # Create access token
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -778,7 +826,11 @@ async def login(user: UserLogin):
                 phone=user_doc["phone"],
                 age=user_doc["age"],
                 location=user_doc["location"],
-                is_admin=user_doc.get("is_admin", False)
+                is_admin=user_doc.get("is_admin", False),
+                bio=user_doc.get("bio"),
+                avatar_url=user_doc.get("avatar_url"),
+                created_at=user_doc.get("created_at", ""),
+                updated_at=user_doc.get("updated_at")
             )
         }
         
@@ -806,11 +858,189 @@ async def get_current_user(user_id: str = Depends(verify_token)):
             phone=user["phone"],
             age=user["age"],
             location=user["location"],
-            is_admin=user.get("is_admin", False)
+            is_admin=user.get("is_admin", False),
+            bio=user.get("bio"),
+            avatar_url=user.get("avatar_url"),
+            created_at=user.get("created_at", ""),
+            updated_at=user.get("updated_at")
         )
         
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/profile")
+async def update_user_profile(profile_update: UserProfileUpdate, user_id: str = Depends(verify_token)):
+    """Update user profile"""
+    try:
+        # Check if user exists
+        user = db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Prepare update document
+        update_doc = {}
+        if profile_update.name is not None:
+            update_doc["name"] = profile_update.name
+        if profile_update.phone is not None:
+            update_doc["phone"] = profile_update.phone
+        if profile_update.age is not None:
+            update_doc["age"] = profile_update.age
+        if profile_update.location is not None:
+            update_doc["location"] = profile_update.location
+        if profile_update.bio is not None:
+            update_doc["bio"] = profile_update.bio
+        if profile_update.avatar_url is not None:
+            update_doc["avatar_url"] = profile_update.avatar_url
+        
+        # Add updated timestamp
+        update_doc["updated_at"] = datetime.utcnow().isoformat()
+        
+        # Update user document
+        result = db.users.update_one({"id": user_id}, {"$set": update_doc})
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get updated user
+        updated_user = db.users.find_one({"id": user_id})
+        
+        # Remove MongoDB ObjectId and password
+        if "_id" in updated_user:
+            del updated_user["_id"]
+        if "password" in updated_user:
+            del updated_user["password"]
+            
+        return User(
+            id=updated_user["id"],
+            name=updated_user["name"],
+            email=updated_user["email"],
+            phone=updated_user["phone"],
+            age=updated_user["age"],
+            location=updated_user["location"],
+            is_admin=updated_user.get("is_admin", False),
+            bio=updated_user.get("bio"),
+            avatar_url=updated_user.get("avatar_url"),
+            created_at=updated_user.get("created_at", ""),
+            updated_at=updated_user.get("updated_at")
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/profile/reservations")
+async def get_user_reservations(user_id: str = Depends(verify_token)):
+    """Get user's reservations history"""
+    try:
+        # Get user reservations with event details
+        reservations = list(db.reservations.find({"user_id": user_id}))
+        
+        # Enrich with event details
+        enriched_reservations = []
+        for reservation in reservations:
+            # Get event details
+            event = db.events.find_one({"id": reservation["event_id"]})
+            
+            # Remove MongoDB ObjectId
+            if "_id" in reservation:
+                del reservation["_id"]
+            
+            reservation_data = {
+                "id": reservation["id"],
+                "event_id": reservation["event_id"],
+                "codigo_reserva": reservation.get("codigo_reserva", ""),
+                "numero_asistentes": reservation.get("numero_asistentes", 1),
+                "estado": reservation.get("estado", "confirmada"),
+                "created_at": reservation.get("created_at", ""),
+                "fecha_checkin": reservation.get("fecha_checkin"),
+                "notes": reservation.get("notes"),
+                "event": {
+                    "id": event["id"] if event else None,
+                    "title": event["title"] if event else "Evento eliminado",
+                    "description": event["description"] if event else "",
+                    "category": event["category"] if event else "",
+                    "date": event["date"] if event else "",
+                    "time": event["time"] if event else "",
+                    "location": event["location"] if event else "",
+                    "image_url": event.get("image_url") if event else None
+                } if event else None
+            }
+            
+            enriched_reservations.append(reservation_data)
+        
+        # Sort by creation date (newest first)
+        enriched_reservations.sort(key=lambda x: x["created_at"], reverse=True)
+        
+        return {
+            "reservations": enriched_reservations,
+            "total": len(enriched_reservations)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/profile/stats")
+async def get_user_stats(user_id: str = Depends(verify_token)):
+    """Get user statistics"""
+    try:
+        # Get user reservations count
+        total_reservations = db.reservations.count_documents({"user_id": user_id})
+        
+        # Get attended events count
+        attended_events = db.reservations.count_documents({
+            "user_id": user_id,
+            "estado": "checked_in"
+        })
+        
+        # Get upcoming events count
+        upcoming_reservations = db.reservations.count_documents({
+            "user_id": user_id,
+            "estado": "confirmed"
+        })
+        
+        # Get canceled reservations count
+        canceled_reservations = db.reservations.count_documents({
+            "user_id": user_id,
+            "estado": "cancelled"
+        })
+        
+        # Calculate attendance rate
+        attendance_rate = 0
+        if total_reservations > 0:
+            attendance_rate = round((attended_events / total_reservations) * 100, 1)
+        
+        # Get favorite categories
+        pipeline = [
+            {"$match": {"user_id": user_id}},
+            {"$lookup": {
+                "from": "events",
+                "localField": "event_id",
+                "foreignField": "id",
+                "as": "event"
+            }},
+            {"$unwind": "$event"},
+            {"$group": {
+                "_id": "$event.category",
+                "count": {"$sum": 1}
+            }},
+            {"$sort": {"count": -1}},
+            {"$limit": 3}
+        ]
+        
+        favorite_categories = list(db.reservations.aggregate(pipeline))
+        
+        return {
+            "total_reservations": total_reservations,
+            "attended_events": attended_events,
+            "upcoming_reservations": upcoming_reservations,
+            "canceled_reservations": canceled_reservations,
+            "attendance_rate": attendance_rate,
+            "favorite_categories": [cat["_id"] for cat in favorite_categories]
+        }
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -915,6 +1145,11 @@ async def create_event(event: EventCreate, user_id: str = Depends(verify_token))
             "capacity": event.capacity,
             "location": event.location,
             "image_url": event.image_url,
+            "price": event.price,
+            "tags": event.tags,
+            "requirements": event.requirements,
+            "contact_info": event.contact_info,
+            "published": event.published,
             "created_at": datetime.utcnow().isoformat()
         }
         
@@ -930,6 +1165,11 @@ async def create_event(event: EventCreate, user_id: str = Depends(verify_token))
             capacity=event.capacity,
             location=event.location,
             image_url=event.image_url,
+            price=event.price,
+            tags=event.tags,
+            requirements=event.requirements,
+            contact_info=event.contact_info,
+            published=event.published,
             available_spots=event.capacity,
             created_at=event_doc["created_at"]
         )
@@ -965,6 +1205,11 @@ async def update_event(event_id: str, event_update: EventCreate, user_id: str = 
             "capacity": event_update.capacity,
             "location": event_update.location,
             "image_url": event_update.image_url,
+            "price": event_update.price,
+            "tags": event_update.tags,
+            "requirements": event_update.requirements,
+            "contact_info": event_update.contact_info,
+            "published": event_update.published,
             "updated_at": datetime.utcnow().isoformat()
         }
         
@@ -987,6 +1232,11 @@ async def update_event(event_id: str, event_update: EventCreate, user_id: str = 
             capacity=event_update.capacity,
             location=event_update.location,
             image_url=event_update.image_url,
+            price=event_update.price,
+            tags=event_update.tags,
+            requirements=event_update.requirements,
+            contact_info=event_update.contact_info,
+            published=event_update.published,
             available_spots=available_spots,
             created_at=existing_event["created_at"]
         )

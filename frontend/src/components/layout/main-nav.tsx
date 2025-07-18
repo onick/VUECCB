@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Calendar, Users, Settings, LogOut } from "lucide-react";
+import { Menu, X, Calendar, Users, Settings, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -100,8 +100,19 @@ export function MainNav() {
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-700 dark:text-gray-300">
-                  Hola, {user?.nombre}
+                  Hola, {user?.name || user?.nombre}
                 </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="flex items-center"
+                >
+                  <Link href="/profile">
+                    <User className="w-4 h-4 mr-2" />
+                    Mi Perfil
+                  </Link>
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -199,8 +210,19 @@ export function MainNav() {
             {isAuthenticated ? (
               <div className="px-3 py-2 space-y-2">
                 <div className="text-sm text-gray-700 dark:text-gray-300">
-                  Hola, {user?.nombre}
+                  Hola, {user?.name || user?.nombre}
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full flex items-center justify-center"
+                  asChild
+                >
+                  <Link href="/profile" onClick={() => setIsOpen(false)}>
+                    <User className="w-4 h-4 mr-2" />
+                    Mi Perfil
+                  </Link>
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

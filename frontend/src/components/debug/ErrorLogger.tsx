@@ -20,10 +20,14 @@ export function ErrorLogger() {
   const [isMinimized, setIsMinimized] = useState(true)
 
   useEffect(() => {
+    // Generate unique ID
+    let errorCounter = 0
+    const generateUniqueId = () => `${Date.now()}-${++errorCounter}`
+    
     // Listen for global errors
     const handleError = (event: ErrorEvent) => {
       const errorLog: ErrorLog = {
-        id: Date.now().toString(),
+        id: generateUniqueId(),
         timestamp: new Date().toISOString(),
         error: event.message,
         context: `${event.filename}:${event.lineno}:${event.colno}`,
@@ -42,7 +46,7 @@ export function ErrorLogger() {
     // Listen for unhandled promise rejections
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const errorLog: ErrorLog = {
-        id: Date.now().toString(),
+        id: generateUniqueId(),
         timestamp: new Date().toISOString(),
         error: event.reason?.message || String(event.reason),
         context: 'Unhandled Promise Rejection',
@@ -60,7 +64,7 @@ export function ErrorLogger() {
     // Add custom error logger to window
     window.logError = (error: string, context: string, additionalInfo?: any) => {
       const errorLog: ErrorLog = {
-        id: Date.now().toString(),
+        id: generateUniqueId(),
         timestamp: new Date().toISOString(),
         error,
         context,

@@ -41,6 +41,8 @@ interface User {
   age?: number;
   location?: string;
   is_admin: boolean;
+  bio?: string;
+  avatar_url?: string;
   created_at: string;
   updated_at?: string;
   total_reservations?: number;
@@ -48,6 +50,45 @@ interface User {
   attendance_rate?: number;
   last_activity?: string;
   status?: 'active' | 'inactive' | 'admin' | 'deleted';
+}
+
+interface UserProfileUpdate {
+  name?: string;
+  phone?: string;
+  age?: number;
+  location?: string;
+  bio?: string;
+  avatar_url?: string;
+}
+
+interface Reservation {
+  id: string;
+  event_id: string;
+  codigo_reserva: string;
+  numero_asistentes: number;
+  estado: 'confirmed' | 'checked_in' | 'cancelled' | 'no_show';
+  created_at: string;
+  fecha_checkin?: string;
+  notes?: string;
+  event?: {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    date: string;
+    time: string;
+    location: string;
+    image_url?: string;
+  };
+}
+
+interface UserStats {
+  total_reservations: number;
+  attended_events: number;
+  upcoming_reservations: number;
+  canceled_reservations: number;
+  attendance_rate: number;
+  favorite_categories: string[];
 }
 
 interface UserCreate {
@@ -266,11 +307,26 @@ class ApiService {
   }
 
   async updateEvent(id: string, eventData: Partial<EventCreate>): Promise<Event> {
+    // Convert Spanish category to English for API
+    const apiEventData = {
+      ...eventData,
+      category: eventData.category ? categoryToEnglish(eventData.category) : undefined,
+      contact_info: eventData.contact_info && typeof eventData.contact_info === 'object' 
+        ? `${eventData.contact_info.email} | ${eventData.contact_info.phone}`
+        : eventData.contact_info
+    };
+
     const response = await this.request<Event>(`/api/events/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(eventData)
+      body: JSON.stringify(apiEventData)
     });
-    return response.data || response;
+    
+    const event = response.data || response;
+    // Convert category back to Spanish for frontend
+    return {
+      ...event,
+      category: categoryToSpanish(event.category)
+    };
   }
 
   async deleteEvent(id: string): Promise<void> {
@@ -304,8 +360,26 @@ class ApiService {
     // Note: No logout endpoint in current backend, just remove token
   }
 
-  async getProfile(): Promise<any> {
-    const response = await this.request('/api/me');
+  async getProfile(): Promise<User> {
+    const response = await this.request<User>('/api/me');
+    return response.data || response;
+  }
+
+  async updateProfile(profileData: UserProfileUpdate): Promise<User> {
+    const response = await this.request<User>('/api/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    });
+    return response.data || response;
+  }
+
+  async getUserReservations(): Promise<{ reservations: Reservation[], total: number }> {
+    const response = await this.request<{ reservations: Reservation[], total: number }>('/api/profile/reservations');
+    return response.data || response;
+  }
+
+  async getUserStats(): Promise<UserStats> {
+    const response = await this.request<UserStats>('/api/profile/stats');
     return response.data || response;
   }
 
@@ -567,4 +641,15 @@ class ApiService {
 }
 
 export const apiService = new ApiService();
-export type { Event, EventCreate, User, UserCreate, UserUpdate, UsersResponse, ApiResponse };
+export type { 
+  Event, 
+  EventCreate, 
+  User, 
+  UserCreate, 
+  UserUpdate, 
+  UserProfileUpdate,
+  UsersResponse, 
+  ApiResponse, 
+  Reservation,
+  UserStats 
+};

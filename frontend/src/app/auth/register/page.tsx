@@ -57,10 +57,27 @@ export default function RegisterPage() {
       });
       router.push("/");
     } catch (error: any) {
+      let errorMessage = "Error al crear la cuenta";
+      
+      if (error.response?.data?.detail) {
+        // Handle validation errors array
+        if (Array.isArray(error.response.data.detail)) {
+          errorMessage = error.response.data.detail
+            .map((err: any) => err.msg || err.message || String(err))
+            .join(", ");
+        } else if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        } else {
+          errorMessage = "Error de validación";
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.response?.data?.detail || "Error al crear la cuenta",
+        description: errorMessage,
       });
     }
   };

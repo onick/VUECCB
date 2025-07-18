@@ -118,3 +118,10 @@ export interface PaginatedResponse<T> {
   per_page: number;
   pages: number;
 }
+
+// Global error logging interface
+declare global {
+  interface Window {
+    logError?: (error: string, context: string, additionalInfo?: any) => void;
+  }
+}
