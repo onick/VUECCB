@@ -9,7 +9,6 @@ from pydantic import BaseModel
 class ReservationCreate(BaseModel):
     """Model for reservation creation"""
     event_id: str
-    user_id: str
     notes: Optional[str] = None
 
 

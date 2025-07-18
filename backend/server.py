@@ -166,7 +166,7 @@ class Event(BaseModel):
 
 class ReservationCreate(BaseModel):
     event_id: str
-    user_id: str
+    notes: Optional[str] = None
 
 class Reservation(BaseModel):
     id: str

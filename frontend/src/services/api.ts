@@ -128,6 +128,7 @@ class ApiService {
         }
         
         const errorData = await response.json().catch(() => ({ message: 'Network error' }));
+        console.error('API Error Details:', errorData);
         throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
       }
 
