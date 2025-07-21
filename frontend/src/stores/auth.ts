@@ -1,8 +1,52 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { User, LoginCredentials, RegisterData } from "@/types";
-import { apiClient } from "@/lib/api";
-import { API_ENDPOINTS, STORAGE_KEYS } from "@/lib/constants";
+
+// Constantes locales
+const API_ENDPOINTS = {
+  AUTH: {
+    LOGIN: '/api/login',
+    REGISTER: '/api/register',
+    ME: '/api/me'
+  }
+};
+
+const STORAGE_KEYS = {
+  AUTH_TOKEN: 'auth_token',
+  USER_DATA: 'user_data'
+};
+
+// Cliente API simple
+const API_BASE_URL = 'http://localhost:8004';
+
+const apiClient = {
+  post: async (endpoint: string, data: any) => {
+    const response = await fetch(API_BASE_URL + endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error('Request failed');
+    }
+    return response.json();
+  },
+  get: async (endpoint: string) => {
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    const response = await fetch(API_BASE_URL + endpoint, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Request failed');
+    }
+    return response.json();
+  }
+};
 
 interface AuthState {
   user: User | null;
@@ -82,15 +126,20 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       logout: () => {
+        // Limpiar localStorage
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_DATA);
         
+        // Limpiar estado de la store
         set({
           user: null,
           token: null,
           isAuthenticated: false,
           isLoading: false,
         });
+        
+        // Limpiar también la persistencia de Zustand
+        localStorage.removeItem('auth-storage');
       },
 
       checkAuth: async () => {

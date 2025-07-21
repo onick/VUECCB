@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAuthStore } from '@/stores/auth'
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -69,6 +70,7 @@ export default function AdminSidebar({ className = '', onToggle }: AdminSidebarP
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const pathname = usePathname()
+  const { logout } = useAuthStore()
 
   const toggleCollapse = () => {
     const newCollapsedState = !isCollapsed
@@ -103,8 +105,9 @@ export default function AdminSidebar({ className = '', onToggle }: AdminSidebarP
   }
 
   const handleLogout = () => {
-    // Implementar logout aquí
-    console.log('Logout functionality')
+    logout();
+    // Redirigir a la página de login después del logout
+    window.location.href = '/auth/login';
   }
 
   // Mobile Toggle Button Component

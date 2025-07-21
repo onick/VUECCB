@@ -30,6 +30,8 @@ export function MainNav() {
   const handleLogout = () => {
     logout();
     setIsOpen(false);
+    // Redirigir a la página de login después del logout
+    window.location.href = '/auth/login';
   };
 
   return (
