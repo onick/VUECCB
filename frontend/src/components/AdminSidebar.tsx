@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/stores/auth'
 import { 
@@ -70,6 +70,7 @@ export default function AdminSidebar({ className = '', onToggle }: AdminSidebarP
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const pathname = usePathname()
+  const router = useRouter()
   const { logout } = useAuthStore()
 
   const toggleCollapse = () => {
@@ -105,9 +106,19 @@ export default function AdminSidebar({ className = '', onToggle }: AdminSidebarP
   }
 
   const handleLogout = () => {
-    logout();
-    // Redirigir a la página de login después del logout
-    window.location.href = '/auth/login';
+    try {
+      console.log('🔴 AdminSidebar: Iniciando logout...');
+      logout();
+      console.log('✅ AdminSidebar: Logout completado');
+      
+      // Usar router.push en lugar de window.location para mejor rendimiento
+      router.push('/auth/login');
+      console.log('📍 AdminSidebar: Redirigiendo a login...');
+    } catch (error) {
+      console.error('❌ AdminSidebar: Error en logout:', error);
+      // Fallback a window.location si router falla
+      window.location.href = '/auth/login';
+    }
   }
 
   // Mobile Toggle Button Component

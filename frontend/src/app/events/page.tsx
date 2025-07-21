@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MainNav } from '@/components/layout/main-nav';
 import { apiService } from '@/services/api';
 import { Event } from '@/types';
 import { formatDate, getCategoryIcon } from '@/lib/utils';
@@ -129,6 +130,7 @@ export default function EventsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <MainNav />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
