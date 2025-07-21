@@ -134,23 +134,23 @@ class Database:
     # Collection getters for easy access
     @property
     def users(self):
-        return self.db.users if self.db else None
+        return self.db.users if self.db is not None else None
     
     @property 
     def events(self):
-        return self.db.events if self.db else None
+        return self.db.events if self.db is not None else None
     
     @property
     def reservations(self):
-        return self.db.reservations if self.db else None
+        return self.db.reservations if self.db is not None else None
     
     @property
     def checkins(self):
-        return self.db.checkins if self.db else None
+        return self.db.checkins if self.db is not None else None
     
     @property
     def analytics(self):
-        return self.db.analytics if self.db else None
+        return self.db.analytics if self.db is not None else None
 
 
 # Global database instance
