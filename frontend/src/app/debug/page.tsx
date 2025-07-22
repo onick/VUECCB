@@ -25,8 +25,10 @@ export default function DebugPage() {
   });
   const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState<any[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     checkSystemStatus();
   }, []);
 
@@ -111,8 +113,8 @@ export default function DebugPage() {
   };
 
   const runManualTest = async () => {
-    if (window.logError) {
-      window.logError('Manual test error', 'Debug page test', {
+          if (typeof window !== 'undefined' && window.logError) {
+        window.logError('Manual test error', 'Debug page test', {
         test: 'manual_trigger',
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent
@@ -131,7 +133,7 @@ export default function DebugPage() {
       test_results: testResults,
       user_agent: navigator.userAgent,
       timestamp: new Date().toISOString(),
-      url: window.location.href
+              url: typeof window !== 'undefined' ? window.location.href : 'server'
     };
     
     const dataStr = JSON.stringify(logs, null, 2);
@@ -144,6 +146,16 @@ export default function DebugPage() {
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
   };
+
+  if (!mounted) {
+    return (
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
@@ -289,7 +301,7 @@ export default function DebugPage() {
             </div>
             <div>
               <strong>URL Actual:</strong>
-              <p className="text-gray-600 break-all">{window.location.href}</p>
+                              <p className="text-gray-600 break-all">{typeof window !== 'undefined' ? window.location.href : 'Loading...'}</p>
             </div>
             <div>
               <strong>Timestamp:</strong>

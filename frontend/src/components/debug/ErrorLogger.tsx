@@ -198,6 +198,6 @@ export function ErrorLogger() {
 // Extend window type to include our custom error logger
 declare global {
   interface Window {
-    logError: (error: string, context: string, additionalInfo?: any) => void
+    logError?: (error: string, context: string, additionalInfo?: any) => void
   }
 }
