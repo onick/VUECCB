@@ -33,6 +33,12 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+# Health check endpoint for Railway
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Railway deployment"""
+    return {"status": "healthy", "service": "ccb-backend", "timestamp": datetime.utcnow()}
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
