@@ -114,6 +114,7 @@ export default function EventsPage() {
   const EventCard = ({ event }: { event: Event }) => {
     const occupancyPercentage = parseFloat(getOccupancyPercentage(event));
     const isSelected = selectedEvents.includes(event.id);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     return (
       <motion.div 
@@ -141,9 +142,62 @@ export default function EventsPage() {
                 </span>
               </div>
             </div>
-            <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-              <MoreVertical className="w-4 h-4" />
-            </button>
+            
+            {/* Dropdown Menu */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+              
+              {isDropdownOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsDropdownOpen(false)}
+                  />
+                  
+                  {/* Dropdown Menu */}
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                    <div className="py-1">
+                      <Link 
+                        href={`/admin/events/${event.id}`}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <Eye className="w-4 h-4 mr-3 text-blue-500" />
+                        Ver detalles
+                      </Link>
+                      
+                      <Link 
+                        href={`/admin/events/${event.id}/edit`}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <Edit className="w-4 h-4 mr-3 text-green-500" />
+                        Editar evento
+                      </Link>
+                      
+                      <div className="border-t border-gray-100 dark:border-gray-600 my-1" />
+                      
+                      <button 
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          handleDeleteEvent(event.id, event.title);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 mr-3" />
+                        Eliminar evento
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -182,29 +236,7 @@ export default function EventsPage() {
             </div>
           </div>
 
-          <div className="flex space-x-2">
-            <Link 
-              href={`/admin/events/${event.id}`}
-              className="flex-1 px-3 py-2 text-sm font-medium text-ccb-blue bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-center"
-            >
-              <Eye className="w-4 h-4 inline mr-1" />
-              Ver
-            </Link>
-            <Link 
-              href={`/admin/events/${event.id}/edit`}
-              className="flex-1 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors text-center"
-            >
-              <Edit className="w-4 h-4 inline mr-1" />
-              Editar
-            </Link>
-            <button 
-              onClick={() => handleDeleteEvent(event.id, event.title)}
-              className="flex-1 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-            >
-              <Trash2 className="w-4 h-4 inline mr-1" />
-              Eliminar
-            </button>
-          </div>
+
         </div>
       </motion.div>
     );

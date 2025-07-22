@@ -13,6 +13,7 @@ import {
   Search,
   Filter,
   MoreHorizontal,
+  MoreVertical,
   Clock,
   User
 } from 'lucide-react';
@@ -304,14 +305,17 @@ export default function NewsManagementPage() {
         <CardContent>
           {filteredNews.length > 0 ? (
             <div className="space-y-4">
-              {filteredNews.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
+              {filteredNews.map((item, index) => {
+                const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+                
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
                   <div className="flex items-center space-x-4 flex-1">
                     {/* Image Thumbnail */}
                     <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
@@ -360,42 +364,65 @@ export default function NewsManagementPage() {
                     </div>
                   </div>
                   
-                  {/* Actions */}
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                      className="text-blue-600 hover:text-blue-700"
-                      title="Ver artículo público"
+                  {/* Dropdown Menu */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <Link href={`/news/${item.id}`} target="_blank">
-                        <Eye className="w-4 h-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                      className="text-green-600 hover:text-green-700"
-                      title="Editar noticia"
-                    >
-                      <Link href={`/admin/news/${item.id}/edit`}>
-                        <Edit className="w-4 h-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(item.id)}
-                      className="text-red-600 hover:text-red-700"
-                      title="Eliminar noticia"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                    
+                    {isDropdownOpen && (
+                      <>
+                        {/* Backdrop */}
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setIsDropdownOpen(false)}
+                        />
+                        
+                        {/* Dropdown Menu */}
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                          <div className="py-1">
+                            <Link 
+                              href={`/news/${item.id}`}
+                              target="_blank"
+                              className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              onClick={() => setIsDropdownOpen(false)}
+                            >
+                              <Eye className="w-4 h-4 mr-3 text-blue-500" />
+                              Ver artículo público
+                            </Link>
+                            
+                            <Link 
+                              href={`/admin/news/${item.id}/edit`}
+                              className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              onClick={() => setIsDropdownOpen(false)}
+                            >
+                              <Edit className="w-4 h-4 mr-3 text-green-500" />
+                              Editar noticia
+                            </Link>
+                            
+                            <div className="border-t border-gray-100 dark:border-gray-600 my-1" />
+                            
+                            <button 
+                              onClick={() => {
+                                setIsDropdownOpen(false);
+                                handleDelete(item.id);
+                              }}
+                              className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 mr-3" />
+                              Eliminar noticia
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </motion.div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8">
