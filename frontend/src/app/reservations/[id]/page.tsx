@@ -26,7 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { apiService } from '@/services/api';
-import { formatDate, getCategoryIcon } from '../../../lib/utils';
+import { formatDate, getCategoryIcon } from '@/utils/libUtils';
 import { categoryToSpanish } from '@/utils/eventUtils';
 import Link from 'next/link';
 

@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { apiService } from '@/services/api';
 import { Event } from '@/types';
-import { formatDate, getCategoryIcon } from '../../../lib/utils';
+import { formatDate, getCategoryIcon } from '@/utils/libUtils';
 import { categoryToSpanish } from '@/utils/eventUtils';
 import Link from 'next/link';
 
