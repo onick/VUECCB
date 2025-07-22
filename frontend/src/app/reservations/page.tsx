@@ -154,7 +154,7 @@ export default function ReservationsPage() {
       }
       
       // If we get 401, redirect to login
-      if (error.response?.status === 401) {
+      if ((error as any)?.response?.status === 401) {
         router.push('/auth/login?redirect=' + encodeURIComponent('/reservations'));
       }
       setReservations([]);

@@ -37,26 +37,167 @@ export default function UsersPage() {
     loadUsers();
   }, [searchTerm, statusFilter, sortBy, sortOrder, page]);
 
+  // Datos simulados de usuarios
+  const getMockUsers = (): User[] => {
+    return [
+      {
+        id: '1',
+        name: 'María González',
+        email: 'maria.gonzalez@email.com',
+        phone: '+1-809-555-0101',
+        age: 28,
+        location: 'Santo Domingo',
+        is_admin: false,
+        bio: 'Amante del arte y la cultura dominicana',
+        avatar_url: 'https://images.unsplash.com/photo-1494790108755-2616b612b665?w=100&h=100&fit=crop&crop=face',
+        created_at: '2024-01-15T10:30:00Z',
+        updated_at: '2024-01-20T14:22:00Z',
+        total_reservations: 12,
+        attended_events: 10,
+        attendance_rate: 83.3,
+        last_activity: '2024-01-20T14:22:00Z',
+        status: 'active'
+      },
+      {
+        id: '2',
+        name: 'Carlos Pérez',
+        email: 'carlos.perez@email.com',
+        phone: '+1-809-555-0102',
+        age: 35,
+        location: 'Santiago',
+        is_admin: false,
+        bio: 'Fotógrafo profesional interesado en exposiciones',
+        avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+        created_at: '2024-01-10T09:15:00Z',
+        updated_at: '2024-01-18T16:45:00Z',
+        total_reservations: 8,
+        attended_events: 7,
+        attendance_rate: 87.5,
+        last_activity: '2024-01-18T16:45:00Z',
+        status: 'active'
+      },
+      {
+        id: '3',
+        name: 'Ana Martínez',
+        email: 'ana.martinez@email.com',
+        phone: '+1-809-555-0103',
+        age: 42,
+        location: 'La Vega',
+        is_admin: true,
+        bio: 'Administradora del Centro Cultural',
+        avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+        created_at: '2024-01-01T08:00:00Z',
+        updated_at: '2024-01-21T11:30:00Z',
+        total_reservations: 0,
+        attended_events: 15,
+        attendance_rate: 100,
+        last_activity: '2024-01-21T11:30:00Z',
+        status: 'admin'
+      },
+      {
+        id: '4',
+        name: 'Luis Rodríguez',
+        email: 'luis.rodriguez@email.com',
+        phone: '+1-809-555-0104',
+        age: 23,
+        location: 'Santo Domingo',
+        is_admin: false,
+        bio: 'Estudiante de arte, apasionado por el teatro',
+        avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+        created_at: '2024-01-12T14:20:00Z',
+        updated_at: '2024-01-19T09:15:00Z',
+        total_reservations: 15,
+        attended_events: 12,
+        attendance_rate: 80,
+        last_activity: '2024-01-19T09:15:00Z',
+        status: 'active'
+      },
+      {
+        id: '5',
+        name: 'Carmen Silva',
+        email: 'carmen.silva@email.com',
+        phone: '+1-809-555-0105',
+        age: 31,
+        location: 'Puerto Plata',
+        is_admin: false,
+        bio: 'Profesora de música, interesada en conciertos',
+        avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face',
+        created_at: '2024-01-08T12:45:00Z',
+        updated_at: '2024-01-17T15:30:00Z',
+        total_reservations: 6,
+        attended_events: 5,
+        attendance_rate: 83.3,
+        last_activity: '2024-01-17T15:30:00Z',
+        status: 'inactive'
+      }
+    ];
+  };
+
   const loadUsers = async () => {
     try {
       setLoading(true);
       
-      const response = await apiService.getUsers({
-        skip: page * limit,
-        limit,
-        search: searchTerm || undefined,
-        status_filter: statusFilter === 'all' ? undefined : statusFilter,
-        sort_by: sortBy,
-        sort_order: sortOrder
+      // Simular carga desde API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      let allUsers = getMockUsers();
+      
+      // Aplicar filtros
+      if (searchTerm) {
+        allUsers = allUsers.filter(user => 
+          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      
+      if (statusFilter !== 'all') {
+        allUsers = allUsers.filter(user => user.status === statusFilter);
+      }
+      
+      // Aplicar ordenamiento
+      allUsers.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (sortBy) {
+          case 'name':
+            aValue = a.name;
+            bValue = b.name;
+            break;
+          case 'email':
+            aValue = a.email;
+            bValue = b.email;
+            break;
+          case 'created_at':
+            aValue = a.created_at;
+            bValue = b.created_at;
+            break;
+          case 'total_reservations':
+            aValue = a.total_reservations || 0;
+            bValue = b.total_reservations || 0;
+            break;
+          default:
+            aValue = a.created_at;
+            bValue = b.created_at;
+        }
+        
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sortOrder === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+        } else {
+          return sortOrder === 'asc' ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number);
+        }
       });
       
-      console.log('Usuarios cargados:', response);
-      setUsers(response.users || []);
-      setTotal(response.total || 0);
+      // Aplicar paginación
+      const startIndex = page * limit;
+      const paginatedUsers = allUsers.slice(startIndex, startIndex + limit);
+      
+      setUsers(paginatedUsers);
+      setTotal(allUsers.length);
+      
     } catch (error) {
-      console.error('Error loading users:', error);
-      alert('Error al cargar usuarios. Verifica la conexión con el servidor.');
+      console.error('❌ UsersPage: Error loading users:', error);
       setUsers([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }

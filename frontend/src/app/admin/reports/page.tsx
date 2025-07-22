@@ -33,62 +33,87 @@ export default function ReportsPage() {
     loadReportsData()
   }, [])
 
+  // Datos simulados para reportes
+  const getMockStats = () => {
+    return {
+      totalEvents: 45,
+      totalUsers: 342,
+      totalReservations: 1247,
+      occupancyRate: 78.5
+    };
+  };
+
+  const getMockReports = () => {
+    return [
+      {
+        id: '1',
+        name: 'Reporte de Asistencia - Enero 2024',
+        type: 'attendance',
+        period: 'Enero 2024',
+        generated: '2024-01-20',
+        status: 'Completado',
+        downloadUrl: '/api/reports/download/1',
+        size: '2.3 MB',
+        description: 'Análisis detallado de asistencia a eventos durante enero'
+      },
+      {
+        id: '2',
+        name: 'Análisis de Eventos - Diciembre 2023',
+        type: 'events',
+        period: 'Diciembre 2023',
+        generated: '2024-01-01',
+        status: 'Completado',
+        downloadUrl: '/api/reports/download/2',
+        size: '1.8 MB',
+        description: 'Resumen de eventos realizados en diciembre'
+      },
+      {
+        id: '3',
+        name: 'Reporte de Usuarios Activos',
+        type: 'users',
+        period: 'Q4 2023',
+        generated: '2024-01-15',
+        status: 'Completado',
+        downloadUrl: '/api/reports/download/3',
+        size: '950 KB',
+        description: 'Estadísticas de usuarios registrados y activos'
+      },
+      {
+        id: '4',
+        name: 'Análisis de Ocupación - Q4 2023',
+        type: 'occupancy',
+        period: 'Q4 2023',
+        generated: '2024-01-05',
+        status: 'Procesando',
+        downloadUrl: null,
+        size: null,
+        description: 'Reporte trimestral de ocupación de espacios'
+      }
+    ];
+  };
+
   const loadReportsData = async () => {
     try {
       setLoading(true)
       setError(null)
       console.log('🎯 ReportsPage: Loading reports data...')
       
-      // Load dashboard stats for metrics
-      const dashboardStats = await apiService.getDashboardStats()
-      console.log('✅ ReportsPage: Dashboard stats loaded:', dashboardStats)
+      // Simular carga de datos
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Update stats
-      setStats({
-        totalEvents: dashboardStats.total_events || 0,
-        totalUsers: dashboardStats.total_users || 0,
-        totalReservations: dashboardStats.total_reservations || 0,
-        occupancyRate: dashboardStats.total_reservations > 0 ? 
-          Math.round((dashboardStats.total_checkins || 0) / dashboardStats.total_reservations * 100) : 0
-      })
+      // Cargar estadísticas simuladas
+      const mockStats = getMockStats();
+      console.log('✅ ReportsPage: Dashboard stats loaded:', mockStats)
       
-      // Mock recent reports for now
-      const mockReports = [
-        {
-          name: 'Reporte Mensual Eventos',
-          period: 'Junio 2025',
-          generated: '2025-07-01',
-          status: 'Completado'
-        },
-        {
-          name: 'Análisis de Asistencia',
-          period: 'Q2 2025',
-          generated: '2025-07-05',
-          status: 'Completado'
-        },
-        {
-          name: 'Reporte de Ingresos',
-          period: 'Último trimestre',
-          generated: '2025-07-10',
-          status: 'Procesando'
-        }
-      ]
+      setStats(mockStats)
       
+      // Cargar reportes simulados
+      const mockReports = getMockReports();
       setRecentReports(mockReports)
       
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Error loading reports data'
-      console.error('🚨 ReportsPage: Error loading reports data:', error)
-      setError(errorMsg)
-      
-      // Log error to our error logger
-      if (window.logError) {
-        window.logError(errorMsg, 'ReportsPage - loadReportsData()', {
-          error: error instanceof Error ? error.stack : error,
-          timestamp: new Date().toISOString(),
-          location: 'ReportsPage.loadReportsData'
-        })
-      }
+      console.error('❌ ReportsPage: Error loading data:', error)
+      setError('Error al cargar los datos de reportes.')
     } finally {
       setLoading(false)
     }

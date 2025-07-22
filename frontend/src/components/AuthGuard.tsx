@@ -21,7 +21,7 @@ export default function AuthGuard({ children, requireAdmin = false }: AuthGuardP
         return;
       }
 
-      if (requireAdmin && !user?.is_admin) {
+      if (requireAdmin && !(user as any)?.is_admin) {
         router.push('/');
         return;
       }
@@ -48,7 +48,7 @@ export default function AuthGuard({ children, requireAdmin = false }: AuthGuardP
     return null; // Redirect is happening
   }
 
-  if (requireAdmin && !user?.is_admin) {
+        if (requireAdmin && !(user as any)?.is_admin) {
     return null; // Redirect is happening
   }
 

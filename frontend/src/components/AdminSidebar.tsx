@@ -17,7 +17,8 @@ import {
   ChevronRight,
   Menu,
   X,
-  Building2
+  Building2,
+  Newspaper
 } from 'lucide-react'
 
 interface SidebarItem {
@@ -41,6 +42,15 @@ const sidebarItems: SidebarItem[] = [
     subItems: [
       { name: 'Lista de Eventos', href: '/admin/events', icon: Calendar },
       { name: 'Calendario', href: '/admin/events/calendar', icon: Calendar }
+    ]
+  },
+  {
+    name: 'Noticias',
+    href: '/admin/news',
+    icon: Newspaper,
+    subItems: [
+      { name: 'Lista de Noticias', href: '/admin/news', icon: Newspaper },
+      { name: 'Crear Noticia', href: '/admin/news/create', icon: Newspaper }
     ]
   },
   {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Calendar, Users, Settings, LogOut, User } from "lucide-react";
+import { Menu, X, Calendar, Users, LogOut, User, Newspaper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -12,14 +12,8 @@ import { cn } from "@/lib/utils";
 const navigation = [
   { name: "Inicio", href: "/", icon: Calendar },
   { name: "Eventos", href: "/events", icon: Calendar },
+  { name: "Noticias", href: "/news", icon: Newspaper },
   { name: "Mis Reservas", href: "/reservations", icon: Users },
-];
-
-const adminNavigation = [
-  { name: "Dashboard", href: "/admin", icon: Settings },
-  { name: "Gestión de Eventos", href: "/admin/events", icon: Calendar },
-  { name: "Usuarios", href: "/admin/users", icon: Users },
-  { name: "Reportes", href: "/admin/reports", icon: Settings },
 ];
 
 export function MainNav() {
@@ -48,7 +42,7 @@ export function MainNav() {
               </span>
             </Link>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation - Solo navegación pública */}
             <div className="hidden md:ml-6 md:flex md:space-x-8">
               {navigation.map((item) => {
                 const Icon = item.icon;
@@ -68,30 +62,6 @@ export function MainNav() {
                   </Link>
                 );
               })}
-              
-              {user?.is_admin && (
-                <>
-                  <div className="border-l border-gray-300 dark:border-gray-600 mx-4 h-6 self-center" />
-                  {adminNavigation.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={cn(
-                          "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors",
-                          pathname === item.href
-                            ? "border-ccb-gold text-ccb-gold"
-                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200"
-                        )}
-                      >
-                        <Icon className="w-4 h-4 mr-2" />
-                        {item.name}
-                      </Link>
-                    );
-                  })}
-                </>
-              )}
             </div>
           </div>
 
@@ -102,8 +72,24 @@ export function MainNav() {
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-700 dark:text-gray-300">
-                  Hola, {user?.name || user?.nombre}
+                  Hola, {user?.nombre || user?.email}
                 </span>
+                
+                {/* Botón de acceso al admin solo para usuarios admin */}
+                {(user as any)?.is_admin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="flex items-center bg-ccb-blue/10 border-ccb-blue text-ccb-blue hover:bg-ccb-blue hover:text-white"
+                  >
+                    <Link href="/admin">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Panel Admin
+                    </Link>
+                  </Button>
+                )}
+                
                 <Button
                   variant="outline"
                   size="sm"
@@ -155,7 +141,7 @@ export function MainNav() {
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu - Solo navegación pública */}
       {isOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-50 dark:bg-gray-800">
@@ -179,41 +165,29 @@ export function MainNav() {
               );
             })}
 
-            {user?.is_admin && (
-              <>
-                <div className="border-t border-gray-300 dark:border-gray-600 my-2" />
-                <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Administración
-                </div>
-                {adminNavigation.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={cn(
-                        "flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors",
-                        pathname === item.href
-                          ? "bg-ccb-gold text-white"
-                          : "text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
-                      )}
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <Icon className="w-5 h-5 mr-3" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </>
-            )}
-
             <div className="border-t border-gray-300 dark:border-gray-600 my-2" />
             
             {isAuthenticated ? (
               <div className="px-3 py-2 space-y-2">
                 <div className="text-sm text-gray-700 dark:text-gray-300">
-                  Hola, {user?.name || user?.nombre}
+                  Hola, {user?.nombre || user?.email}
                 </div>
+                
+                {/* Botón de acceso al admin en mobile */}
+                {(user as any)?.is_admin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full flex items-center justify-center bg-ccb-blue/10 border-ccb-blue text-ccb-blue"
+                    asChild
+                  >
+                    <Link href="/admin" onClick={() => setIsOpen(false)}>
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Panel Admin
+                    </Link>
+                  </Button>
+                )}
+                
                 <Button
                   variant="outline"
                   size="sm"
