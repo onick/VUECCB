@@ -10,9 +10,9 @@ import { Input } from '@/components/ui/input';
 import { MainNav } from '@/components/layout/main-nav';
 import { apiService } from '@/services/api';
 import { Event } from '@/types';
-import { formatDate, getCategoryIcon } from '@/lib/utils';
-import { categoryToSpanish } from '@/utils/eventUtils';
-import { EVENT_CATEGORIES } from '@/lib/constants';
+import { formatDate, getCategoryIcon } from '../../lib/utils';
+import { categoryToSpanish } from '../../utils/eventUtils';
+import { EVENT_CATEGORIES } from '../../lib/constants';
 import Link from 'next/link';
 
 export default function EventsPage() {
