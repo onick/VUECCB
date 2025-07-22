@@ -35,6 +35,156 @@ interface NewsItem {
   views: number;
 }
 
+// Helper functions
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'published':
+      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+    case 'draft':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+    case 'archived':
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    default:
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+  }
+};
+
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'published':
+      return 'Publicado';
+    case 'draft':
+      return 'Borrador';
+    case 'archived':
+      return 'Archivado';
+    default:
+      return 'Desconocido';
+  }
+};
+
+// Componente separado para cada item de noticia
+function NewsListItem({ item, index, onDelete }: { 
+  item: NewsItem; 
+  index: number; 
+  onDelete: (id: string) => void;
+}) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+    >
+      <div className="flex items-center space-x-4 flex-1">
+        {/* Image Thumbnail */}
+        <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
+          {item.image_url ? (
+            <img 
+              src={item.image_url} 
+              alt={item.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Newspaper className="w-6 h-6 text-gray-400" />
+          )}
+        </div>
+        
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center space-x-2 mb-1">
+            <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+              {item.title}
+            </h3>
+            <Badge className={getStatusColor(item.status)}>
+              {getStatusText(item.status)}
+            </Badge>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+            {item.description}
+          </p>
+          <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+            <span className="flex items-center">
+              <Calendar className="w-3 h-3 mr-1" />
+              {new Date(item.date).toLocaleDateString('es-ES')}
+            </span>
+            <span className="flex items-center">
+              <User className="w-3 h-3 mr-1" />
+              {item.author}
+            </span>
+            <span className="flex items-center">
+              <Eye className="w-3 h-3 mr-1" />
+              {item.views} vistas
+            </span>
+            <span className="flex items-center">
+              <Tag className="w-3 h-3 mr-1" />
+              {item.category}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Dropdown Menu */}
+      <div className="relative">
+        <button 
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        >
+          <MoreVertical className="w-4 h-4" />
+        </button>
+        
+        {isDropdownOpen && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 z-10" 
+              onClick={() => setIsDropdownOpen(false)}
+            />
+            
+            {/* Dropdown Menu */}
+            <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+              <div className="py-1">
+                <Link 
+                  href={`/news/${item.id}`}
+                  target="_blank"
+                  className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  <Eye className="w-4 h-4 mr-3 text-blue-500" />
+                  Ver artículo público
+                </Link>
+                
+                <Link 
+                  href={`/admin/news/${item.id}/edit`}
+                  className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  <Edit className="w-4 h-4 mr-3 text-green-500" />
+                  Editar noticia
+                </Link>
+                
+                <div className="border-t border-gray-100 dark:border-gray-600 my-1" />
+                
+                <button 
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    onDelete(item.id);
+                  }}
+                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 mr-3" />
+                  Eliminar noticia
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 export default function NewsManagementPage() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -305,124 +455,14 @@ export default function NewsManagementPage() {
         <CardContent>
           {filteredNews.length > 0 ? (
             <div className="space-y-4">
-              {filteredNews.map((item, index) => {
-                const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-                
-                return (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                  <div className="flex items-center space-x-4 flex-1">
-                    {/* Image Thumbnail */}
-                    <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
-                      {item.image_url ? (
-                        <img 
-                          src={item.image_url} 
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Newspaper className="w-6 h-6 text-gray-400" />
-                      )}
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-                          {item.title}
-                        </h3>
-                        <Badge className={getStatusColor(item.status)}>
-                          {getStatusText(item.status)}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                        {item.description}
-                      </p>
-                      <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                        <span className="flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          {new Date(item.date).toLocaleDateString('es-ES')}
-                        </span>
-                        <span className="flex items-center">
-                          <User className="w-3 h-3 mr-1" />
-                          {item.author}
-                        </span>
-                        <span className="flex items-center">
-                          <Eye className="w-3 h-3 mr-1" />
-                          {item.views} vistas
-                        </span>
-                        <span className="flex items-center">
-                          <Tag className="w-3 h-3 mr-1" />
-                          {item.category}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Dropdown Menu */}
-                  <div className="relative">
-                    <button 
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                    
-                    {isDropdownOpen && (
-                      <>
-                        {/* Backdrop */}
-                        <div 
-                          className="fixed inset-0 z-10" 
-                          onClick={() => setIsDropdownOpen(false)}
-                        />
-                        
-                        {/* Dropdown Menu */}
-                        <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
-                          <div className="py-1">
-                            <Link 
-                              href={`/news/${item.id}`}
-                              target="_blank"
-                              className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                              onClick={() => setIsDropdownOpen(false)}
-                            >
-                              <Eye className="w-4 h-4 mr-3 text-blue-500" />
-                              Ver artículo público
-                            </Link>
-                            
-                            <Link 
-                              href={`/admin/news/${item.id}/edit`}
-                              className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                              onClick={() => setIsDropdownOpen(false)}
-                            >
-                              <Edit className="w-4 h-4 mr-3 text-green-500" />
-                              Editar noticia
-                            </Link>
-                            
-                            <div className="border-t border-gray-100 dark:border-gray-600 my-1" />
-                            
-                            <button 
-                              onClick={() => {
-                                setIsDropdownOpen(false);
-                                handleDelete(item.id);
-                              }}
-                              className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4 mr-3" />
-                              Eliminar noticia
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </motion.div>
-                );
-              })}
+              {filteredNews.map((item, index) => (
+                <NewsListItem
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  onDelete={handleDelete}
+                />
+              ))}
             </div>
           ) : (
             <div className="text-center py-8">

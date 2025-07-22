@@ -1246,6 +1246,61 @@ async def update_event(event_id: str, event_update: EventCreate, user_id: str = 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete("/api/events/{event_id}")
+@performance_tracker.track_endpoint_performance("delete_event")
+async def delete_event(event_id: str, user_id: str = Depends(verify_token)):
+    """Delete an event (Admin only)"""
+    try:
+        # Check if user is admin
+        user_doc = db.users.find_one({"id": user_id})
+        if not user_doc or not user_doc.get("is_admin"):
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Check if event exists
+        existing_event = db.events.find_one({"id": event_id})
+        if not existing_event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Check if event has active reservations
+        active_reservations = db.reservations.count_documents({
+            "event_id": event_id,
+            "status": {"$in": ["confirmed", "checked_in"]}
+        })
+        
+        if active_reservations > 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot delete event with {active_reservations} active reservations. Cancel reservations first."
+            )
+        
+        # Delete the event
+        result = db.events.delete_one({"id": event_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=500, detail="Failed to delete event")
+        
+        # Track analytics
+        try:
+            await analytics.track_user_event(
+                user_id=user_id,
+                event_type="event_deleted",
+                metadata={
+                    "event_id": event_id,
+                    "event_title": existing_event.get("title", "Unknown"),
+                    "event_category": existing_event.get("category", "Unknown")
+                }
+            )
+        except Exception as analytics_error:
+            logger.warning(f"Failed to track analytics: {analytics_error}")
+        
+        return {"message": "Event deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting event: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete event: {str(e)}")
+
 @app.post("/api/reservations")
 @performance_tracker.track_endpoint_performance("create_reservation")
 async def create_reservation(reservation: ReservationCreate, user_id: str = Depends(verify_token)):
